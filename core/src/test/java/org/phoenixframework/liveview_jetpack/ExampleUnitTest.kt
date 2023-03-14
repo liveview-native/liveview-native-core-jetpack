@@ -1,4 +1,4 @@
-package org.phoenixframework.liveview
+package org.phoenixframework.liveview_jetpack
 
 import org.junit.Test
 

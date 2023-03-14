@@ -1,4 +1,4 @@
-package org.phoenixframework.liveview
+package org.phoenixframework.liveview_jetpack
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -19,6 +19,6 @@ class ExampleInstrumentedTest {
     fun useAppContext() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("org.phoenixframework.liveview_native_core_jetpack", appContext.packageName)
+        assertEquals("org.phoenixframework.liveview.test", appContext.packageName)
     }
 }
