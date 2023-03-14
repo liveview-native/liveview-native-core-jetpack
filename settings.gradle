@@ -14,4 +14,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "liveview-native-core-jetpack"
-include ':app'
+include ':core'
