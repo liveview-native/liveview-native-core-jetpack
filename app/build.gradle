@@ -1,0 +1,59 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+    id 'maven-publish'
+}
+
+def githubPropertiesFile = rootProject.file("github.properties");
+def githubProperties = new Properties()
+githubProperties.load(new FileInputStream(githubPropertiesFile))
+
+android {
+    namespace 'org.phoenixframework.liveview_native_core_jetpack'
+    compileSdk 33
+
+    defaultConfig {
+        minSdk 21
+        targetSdk 33
+        versionCode 1
+        versionName "0.1.0-pre"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
+}
+
+dependencies {
+
+
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+}
+
+afterEvaluate{
+    publishing {
+        publications {
+            maven(MavenPublication) {
+                groupId = 'org.phoenixframework'
+                artifactId = 'liveview-native-core-jetpack'
+                version = '0.1.0-pre'
+                from components.release
+            }
+        }
+    }
+}
+
