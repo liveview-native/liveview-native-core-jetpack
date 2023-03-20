@@ -2,7 +2,6 @@ plugins {
     id 'com.android.library'
     id 'org.jetbrains.kotlin.android'
     id 'maven-publish'
-    id "org.mozilla.rust-android-gradle.rust-android" version "0.9.3"
 }
 
 def githubPropertiesFile = rootProject.file("github.properties");
@@ -39,6 +38,7 @@ android {
 
 }
 
+/*
 apply plugin: 'org.mozilla.rust-android-gradle.rust-android'
 
 cargo {
@@ -46,11 +46,13 @@ cargo {
     libname = "liveview_native_core"
     targets = ["arm", "x86"]
 }
+*/
 
 dependencies {
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
 }
+
 
 afterEvaluate {
     publishing {
