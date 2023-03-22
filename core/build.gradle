@@ -16,7 +16,7 @@ android {
         minSdk 21
         targetSdk 33
         versionCode 1
-        versionName "0.1.0-pre-alpha-05"
+        versionName "0.1.0-pre-alpha-06"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -33,7 +33,7 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
-  //  ndkVersion '21.4.7075529'
+   // ndkVersion '21.4.7075529'
 
 
 }
@@ -60,7 +60,7 @@ afterEvaluate {
             maven(MavenPublication) {
                 groupId = 'org.phoenixframework'
                 artifactId = 'liveview-native-core-jetpack'
-                version = '0.1.0-pre-alpha-05'
+                version = '0.1.0-pre-alpha-06'
                 from components.release
             }
         }
