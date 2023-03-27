@@ -1,9 +1,7 @@
 package org.phoenixframework.liveview.lib
 
-
 class Document {
     private var nativeObject: Long
-
 
     constructor() {
         nativeObject = empty()
@@ -14,9 +12,11 @@ class Document {
     }
 
     companion object {
-        /** Parses a `Document` from a string
+        /**
+         * Parses a `Document` from a string
+         *
          * @throws Exception if the document is malformed
-         * */
+         */
         @Throws
         fun parse(string: String): Document {
             val result = JavaResult(do_parse(string))
@@ -27,23 +27,20 @@ class Document {
 
         /** Output logs from the Rust side into android's logcat */
         private external fun initialize_log()
+
         enum class ChangeType {
-            Change, Add, Remove
+            Change,
+            Add,
+            Remove
         }
 
         open class Handler {
-            private fun mOnHandle(
-                context: Long,
-                changeType: Byte,
-                nodeRef: Int,
-                parent: Int
-            ) {
+            private fun mOnHandle(context: Long, changeType: Byte, nodeRef: Int, parent: Int) {
                 onHandle(
                     Document(context),
                     ChangeType.values()[changeType.toInt()],
                     NodeRef(nodeRef),
-                    if (parent == 0) null else NodeRef(parent)
-                )
+                    if (parent == 0) null else NodeRef(parent))
             }
 
             open fun onHandle(
@@ -51,26 +48,25 @@ class Document {
                 changeType: ChangeType,
                 nodeRef: NodeRef,
                 parent: NodeRef?
-            ){}
+            ) {}
         }
-
     }
 
-    fun getNodeString(nodeRef: NodeRef): String {
-        return node_to_string(nativeObject, nodeRef.ref)
-    }
+    fun getNodeString(nodeRef: NodeRef): String = node_to_string(nativeObject, nodeRef.ref)
 
-    /** Returns the root node of the document
-     * The root node can be used in insertion operations, but can not have attributes applied to it
+    /**
+     * Returns the root node of the document The root node can be used in insertion operations, but
+     * can not have attributes applied to it
      */
     // could also use lazy
-    val rootNodeRef get() = run { NodeRef(root(nativeObject)) }
+    val rootNodeRef
+        get() = run { NodeRef(root(nativeObject)) }
 
     /** Returns the data associated with the given `NodeRef` */
     fun getNode(nodeRef: NodeRef): Node {
         val nodePtr = get_node(nativeObject, nodeRef.ref)
         // construct node
-        return when (get_node_type(nodePtr)) {
+        return when (val nodeType = get_node_type(nodePtr)) {
             0.toByte() -> {
                 Node.Root
             }
@@ -85,19 +81,16 @@ class Document {
             2.toByte() -> {
                 Node.Leaf(get_node_leaf_string(nativeObject, nodeRef.ref))
             }
-            else -> throw Exception("Unreachable code")
+            else -> throw Exception("Unknown node type ${nodeType}")
         }
     }
 
     /** Returns the children of `node` as a string */
-    fun getChildren(nodeRef: NodeRef) =
-        get_children(nativeObject, nodeRef.ref).map { NodeRef(it) }
+    fun getChildren(nodeRef: NodeRef) = get_children(nativeObject, nodeRef.ref).map { NodeRef(it) }
 
     /** Returns the parent of `node`, if it has one */
-
     fun getParent(nodeRef: NodeRef) =
-        get_parent(nativeObject, nodeRef.ref)
-            .let { if (it < 0) null else NodeRef(it) }
+        get_parent(nativeObject, nodeRef.ref).let { if (it < 0) null else NodeRef(it) }
 
     fun merge(other: Document, handler: Handler) {
         merge(nativeObject, other.nativeObject, handler)
