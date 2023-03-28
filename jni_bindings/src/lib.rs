@@ -1,3 +1,4 @@
+use std::panic;
 use android_logger::Config;
 use cranelift_entity::EntityRef;
 use jni::objects::{JClass, JIntArray, JObject, JObjectArray, JString, JValue};
@@ -9,6 +10,8 @@ use liveview_native_core::ffi::{
 };
 use liveview_native_core::{diff, dom};
 use log::LevelFilter;
+use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::sync::Mutex;
 
 pub struct JavaResult {
     pub val: jlong,
@@ -151,41 +154,35 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_do_1to_1s
 // Java side should ensure only u32 is passed as the node parameter
 #[no_mangle]
 pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_node_1to_1string<'local>(
-    env: JNIEnv<'local>,
+    mut env: JNIEnv<'local>,
     _: JClass<'local>,
     this: jlong,
     node: jint,
 ) -> JString<'local> {
-    let result = panic::catch_unwind(|| {
-        // only u32 should be passed as node
-        let node = u32::try_from(node).expect("value beyond `u32` range");
-        let node = NodeRef::new(node as usize);
-        let dom = unsafe { jlong_to_pointer::<dom::Document>(this).as_ref().unwrap() };
-        let mut buf = String::new();
-        dom.print_node(node, &mut buf, dom::PrintOptions::Pretty)
-            .expect("error printing node");
+    // only u32 should be passed as node
+    let node = u32::try_from(node).expect("value beyond `u32` range");
+    let node = NodeRef::new(node as usize);
+    let dom = unsafe { jlong_to_pointer::<dom::Document>(this).as_ref().unwrap() };
+    let mut buf = String::new();
 
+    if let Err(err) = dom.print_node(node, &mut buf, dom::PrintOptions::Pretty) {
+        let exception_class = env.find_class("java/lang/RuntimeException").unwrap();
+        let message = format!("Rust panic occurred in node_to_string: {:?}", err);
+        env.throw_new(exception_class, message).unwrap();
+        JObject::null().into()
+    } else {
         from_std_string_jstring(buf, env)
-    });
-
-    match result {
-        Ok(jstring) => jstring,
-        Err(_) => {
-            let exception_class = env.find_class("java/lang/RuntimeException").unwrap();
-            let message = "Rust panic occurred in node_to_string";
-            env.throw_new(exception_class, message).unwrap();
-            JObject::null().into()
-        }
     }
 }
 
+
 #[no_mangle]
 pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_root<'local>(
-    env: JNIEnv<'local>,
+    mut env: JNIEnv<'local>,
     _: JClass<'local>,
     this: jlong,
 ) -> jint {
-    let result = panic::catch_unwind(|| {
+    let result = catch_unwind(|| {
         unsafe {
             let dom: &dom::Document = jlong_to_pointer::<dom::Document>(this).as_ref().unwrap();
             dom.root().as_u32() as jint
@@ -194,9 +191,10 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_root<'loc
 
     match result {
         Ok(jint) => jint,
-        Err(_) => {
+        Err(err) => {
             let exception_class = env.find_class("java/lang/RuntimeException").unwrap();
-            env.throw_new(exception_class, "Rust panic occurred").unwrap();
+            let message = format!("Rust panic occurred in Document_root: {:?}", err);
+            env.throw_new(exception_class, message).unwrap();
             0
         }
     }
@@ -205,12 +203,12 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_root<'loc
 
 #[no_mangle]
 pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node<'local>(
-    env: JNIEnv<'local>,
+    mut env: JNIEnv<'local>,
     _: JClass<'local>,
     this: jlong,
     node_ref: jint,
 ) -> jlong {
-    let result = panic::catch_unwind(|| {
+    let result = catch_unwind(|| {
         // only u32 should be passed as node
         let node = u32::try_from(node_ref).expect("value beyond `u32` range");
         let node = NodeRef::new(node as usize);
@@ -221,9 +219,10 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node
 
     match result {
         Ok(jlong) => jlong,
-        Err(_) => {
+        Err(err) => {
             let exception_class = env.find_class("java/lang/RuntimeException").unwrap();
-            env.throw_new(exception_class, "Rust panic occurred").unwrap();
+            let message = format!("Rust panic occurred in get_node: {:?}", err);
+            env.throw_new(exception_class, message).unwrap();
             0
         }
     }
@@ -282,46 +281,44 @@ fn from_attr(attr: &dom::Attribute) -> Attribute {
     }
 }
 
-// Java side should ensure only u32 is passed as the node parameter
 #[no_mangle]
-pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1leaf_1string<
-    'local,
->(
+pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1leaf_1string<'local>(
     env: JNIEnv<'local>,
     _: JClass<'local>,
     this: jlong,
     node_ref: jint,
 ) -> JString<'local> {
-    let result = panic::catch_unwind(|| {
-        // only u32 should be passed as node
+    let mut clone = unsafe { env.unsafe_clone() };
+    let result = catch_unwind(|| {
         let node = u32::try_from(node_ref).expect("value beyond `u32` range");
         let node = NodeRef::new(node as usize);
         let doc = unsafe { jlong_to_pointer::<dom::Document>(this).as_ref().unwrap() };
         match doc.get(node) {
-            dom::Node::Leaf(ref s) => from_std_string_jstring(s.to_string(), env),
-            _ => {
-                panic!("node isn't a leaf")
-            }
+            dom::Node::Leaf(ref s) => Ok(from_std_string_jstring(s.to_string(), env)),
+            _ => Err(String::from("node isn't a leaf")),
         }
     });
 
     match result {
-        Ok(jstring) => jstring,
-        Err(_) => {
-            let exception_class = env.find_class("java/lang/RuntimeException").unwrap();
-            env.throw_new(exception_class, "Rust panic occurred").unwrap();
+        Ok(jstring) => jstring.unwrap(),
+        Err(err) => {
+            let exception_class = clone.find_class("java/lang/RuntimeException").unwrap();
+            let message = format!("Rust panic occurred in get_node_leaf_string: {:?}", err);
+            clone.throw_new(exception_class, message).unwrap();
+            //convert message to jstring and return
             JObject::null().into()
         }
     }
 }
 
+
 #[no_mangle]
 pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1type(
-    env: JNIEnv,
+    mut env: JNIEnv,
     _: JClass,
     node: jlong,
 ) -> jbyte {
-    let result = panic::catch_unwind(|| {
+    let result = catch_unwind(|| {
         unsafe {
             let node: &Node = jlong_to_pointer::<Node>(node).as_ref().unwrap();
             node.ty as jbyte
@@ -330,9 +327,10 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node
 
     match result {
         Ok(jbyte) => jbyte,
-        Err(_) => {
+        Err(err) => {
             let exception_class = env.find_class("java/lang/RuntimeException").unwrap();
-            env.throw_new(exception_class, "Rust panic occurred").unwrap();
+            let message = format!("Rust panic occurred in get_node_type: {:?}", err);
+            env.throw_new(exception_class, message).unwrap();
             0
         }
     }
@@ -341,23 +339,39 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node
 
 #[no_mangle]
 pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1element(
-    _env: JNIEnv,
+    env: JNIEnv,
     _: JClass,
     node: jlong,
 ) -> jlong {
-    unsafe {
-        let node: *mut Node = jlong_to_pointer::<Node>(node).as_mut().unwrap();
-        let ret = Box::new((*node).data.element);
-        Box::into_raw(ret) as jlong as jlong
+    let mut clone = unsafe { env.unsafe_clone() };
+    let result = catch_unwind(|| {
+        unsafe {
+            let node: *mut Node = jlong_to_pointer::<Node>(node).as_mut().unwrap();
+            let ret = Box::new((*node).data.element);
+            Box::into_raw(ret) as jlong as jlong
+        }
+    });
+
+    match result {
+        Ok(jlong) => jlong,
+        Err(err) => {
+            let exception_class = clone.find_class("java/lang/RuntimeException").unwrap();
+            let message = format!("Rust panic occurred in get_node_element: {:?}", err);
+            clone.throw_new(exception_class, message).unwrap();
+            0
+        }
     }
 }
+
+
 #[no_mangle]
 pub extern "system" fn Java_org_phoenixframework_liveview_lib_Node_00024Element_drop(
-    env: JNIEnv,
+     env: JNIEnv,
     _: JClass,
     this: jlong,
 ) {
-    let result = panic::catch_unwind(|| {
+    let mut clone = unsafe { env.unsafe_clone() };
+    let result = catch_unwind(|| {
         unsafe {
             let dom: *mut Element = jlong_to_pointer::<Element>(this).as_mut().unwrap();
             let dom = Box::from_raw(dom);
@@ -365,12 +379,12 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Node_00024Element_
         }
     });
 
-    if let Err(_) = result {
-        let exception_class = env.find_class("java/lang/RuntimeException").unwrap();
-        env.throw_new(exception_class, "Rust panic occurred").unwrap();
+    if let Err(err) = result {
+        let exception_class = clone.find_class("java/lang/RuntimeException").unwrap();
+        let message = format!("Rust panic occurred in Element drop: {:?}", err);
+        clone.throw_new(exception_class, message).unwrap();
     }
 }
-
 
 #[no_mangle]
 pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1element_1namespace<'local>(
@@ -378,7 +392,8 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node
     _: JClass<'local>,
     element: jlong,
 ) -> JString<'local> {
-    let result = panic::catch_unwind(|| {
+    let mut clone = unsafe { env.unsafe_clone() };
+    let result = catch_unwind(|| {
         unsafe {
             let element: &Element = jlong_to_pointer::<Element>(element).as_mut().unwrap();
             from_std_string_jstring(String::from(element.namespace.to_str()), env)
@@ -387,10 +402,11 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node
 
     match result {
         Ok(jstring) => jstring,
-        Err(_) => {
-            let exception_class = env.find_class("java/lang/RuntimeException").unwrap();
-            env.throw_new(exception_class, "Rust panic occurred").unwrap();
-            JObject::null().into()
+        Err(err) => {
+            let exception_class = clone.find_class("java/lang/RuntimeException").unwrap();
+            let message = format!("Rust panic occurred in get_node_element_namespace: {:?}", err);
+            clone.throw_new(exception_class, message).unwrap();
+            clone.new_string("").unwrap().into()
         }
     }
 }
@@ -402,31 +418,33 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node
     _: JClass<'local>,
     element: jlong,
 ) -> JString<'local> {
-    let result = panic::catch_unwind(|| {
+    let mut clone = unsafe { env.unsafe_clone() };
+    let result = catch_unwind(|| {
         let element: &Element = unsafe { jlong_to_pointer::<Element>(element).as_mut().unwrap() };
         from_std_string_jstring(String::from(element.tag.to_str()), env)
     });
 
     match result {
         Ok(jstring) => jstring,
-        Err(_) => {
-            let exception_class = env.find_class("java/lang/RuntimeException").unwrap();
-            env.throw_new(exception_class, "Rust panic occurred").unwrap();
-            JObject::null().into()
+        Err(err) => {
+            let exception_class = clone.find_class("java/lang/RuntimeException").unwrap();
+            let message = format!("Rust panic occurred in get_node_element_tag: {:?}", err);
+            clone.throw_new(exception_class, message).unwrap();
+            clone.new_string("").unwrap().into()
         }
     }
 }
 
-
-#[no_mangle]
 pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1element_1attributes<
     'local,
 >(
-    mut env: JNIEnv<'local>,
+    env: JNIEnv<'local>,
     _: JClass<'local>,
     element: jlong,
 ) -> JObjectArray<'local> {
-    let result = panic::catch_unwind(|| {
+    let  env_mutex = Mutex::new(env);
+    let result = catch_unwind(|| {
+        let mut env = env_mutex.lock().unwrap();
         let element: &Element = unsafe { jlong_to_pointer::<Element>(element).as_mut().unwrap() };
         let mut attributes = element.attributes.to_vec();
         let attribute_class = env
@@ -450,9 +468,11 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node
 
     match result {
         Ok(jobject_array) => jobject_array,
-        Err(_) => {
-            let exception_class = env.find_class("java/lang/NoClassDefFoundError").unwrap();
-            env.throw_new(exception_class, "Rust panic occurred").unwrap();
+        Err(err) => {
+            let mut env = env_mutex.lock().unwrap();
+            let exception_class = env.find_class("java/lang/RuntimeException").unwrap();
+            let message = format!("Rust panic occurred in Document get_1node_1element_1attributes: {:?}", err);
+            env.throw_new(exception_class, message).unwrap();
             JObject::null().into()
         }
     }
@@ -461,11 +481,11 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node
 
 #[no_mangle]
 pub extern "system" fn Java_org_phoenixframework_liveview_lib_Attribute_drop(
-    env: JNIEnv,
+    mut env: JNIEnv,
     _: JClass,
     this: jlong,
 ) {
-    let result = panic::catch_unwind(|| {
+    let result = catch_unwind(|| {
         unsafe {
             let dom: *mut Attribute = jlong_to_pointer::<Attribute>(this).as_mut().unwrap();
             let dom = Box::from_raw(dom);
@@ -473,9 +493,10 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Attribute_drop(
         }
     });
 
-    if let Err(_) = result {
+    if let Err(err) = result {
         let exception_class = env.find_class("java/lang/RuntimeException").unwrap();
-        env.throw_new(exception_class, "Rust panic occurred").unwrap();
+        let message = format!("Rust panic occurred in Attribute drop: {:?}", err);
+        env.throw_new(exception_class, message).unwrap();
     }
 }
 
@@ -486,20 +507,22 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Attribute_get_1nam
     _: JClass<'local>,
     attr: jlong,
 ) -> JString<'local> {
-    let result = panic::catch_unwind(|| {
+    let mut clone = unsafe { env.unsafe_clone() };
+    let result = catch_unwind(|| {
         let attribute: &Attribute = unsafe { jlong_to_pointer::<Attribute>(attr).as_mut().unwrap() };
         from_std_string_jstring(String::from(attribute.name.to_str()), env)
     });
-
     match result {
         Ok(jstring) => jstring,
-        Err(_) => {
-            let exception_class = env.find_class("java/lang/RuntimeException").unwrap();
-            env.throw_new(exception_class, "Rust panic occurred").unwrap();
-            JObject::null().into()
+        Err(err) => {
+            let exception_class = clone.find_class("java/lang/RuntimeException").unwrap();
+            let message = format!("Rust panic occurred in get_attribute_name: {:?}", err);
+            clone.throw_new(exception_class, message).unwrap();
+            clone.new_string("").unwrap().into()
         }
     }
 }
+
 
 #[no_mangle]
 pub extern "system" fn Java_org_phoenixframework_liveview_lib_Attribute_get_1namespace<'local>(
@@ -507,20 +530,25 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Attribute_get_1nam
     _: JClass<'local>,
     attr: jlong,
 ) -> JString<'local> {
-    let result = panic::catch_unwind(|| {
+    let mut clone = unsafe { env.unsafe_clone() };
+    let result = catch_unwind(|| {
         let attribute: &Attribute = unsafe { jlong_to_pointer::<Attribute>(attr).as_ref().unwrap() };
         from_std_string_jstring(String::from(attribute.namespace.to_str()), env)
     });
 
     match result {
         Ok(jstring) => jstring,
-        Err(_) => {
-            let exception_class = env.find_class("java/lang/RuntimeException").unwrap();
-            env.throw_new(exception_class, "Rust panic occurred").unwrap();
-            JObject::null().into()
+        Err(err) => {
+            let exception_class = clone
+                .find_class("java/lang/RuntimeException")
+                .expect("Could not find exception class");
+            let message = format!("Rust panic occurred in get_namespace: {:?}", err);
+            clone.throw_new(exception_class, message).unwrap();
+            clone.new_string("").unwrap().into()
         }
     }
 }
+
 
 #[no_mangle]
 pub extern "system" fn Java_org_phoenixframework_liveview_lib_Attribute_get_1value<'local>(
@@ -528,17 +556,19 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Attribute_get_1val
     _: JClass<'local>,
     attr: jlong,
 ) -> JString<'local> {
-    let result = panic::catch_unwind(|| {
+    let mut clone = unsafe { env.unsafe_clone() };
+    let result = catch_unwind(|| {
         let attribute: &Attribute = unsafe { jlong_to_pointer::<Attribute>(attr).as_ref().unwrap() };
         from_std_string_jstring(String::from(attribute.value.to_str()), env)
     });
 
     match result {
         Ok(jstring) => jstring,
-        Err(_) => {
-            let exception_class = env.find_class("java/lang/RuntimeException").unwrap();
-            env.throw_new(exception_class, "Rust panic occurred").unwrap();
-            JObject::null().into()
+        Err(err) => {
+            let exception_class = clone.find_class("java/lang/RuntimeException").unwrap();
+            let message = format!("Rust panic occurred in get_attribute_value: {:?}", err);
+            clone.throw_new(exception_class, message).unwrap();
+            clone.new_string("").unwrap().into()
         }
     }
 }
@@ -546,12 +576,12 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Attribute_get_1val
 
 #[no_mangle]
 pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1children<'local>(
-    env: JNIEnv<'local>,
+    mut env: JNIEnv<'local>,
     _: JClass<'local>,
     this: jlong,
     node_ref: jint,
 ) -> JIntArray<'local> {
-    let result = panic::catch_unwind(|| {
+    let result = catch_unwind(|| {
         // only u32 should be passed as node
         let node = u32::try_from(node_ref).expect("value beyond `u32` range");
         let node = NodeRef::new(node as usize);
@@ -568,7 +598,7 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1chil
         Err(_) => {
             let exception_class = env.find_class("java/lang/RuntimeException").unwrap();
             env.throw_new(exception_class, "Rust panic occurred").unwrap();
-            JObject::null().into_inner()
+            JObject::null().into()
         }
     }
 }
@@ -578,12 +608,12 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1chil
 // Note! this function returns -1 when there's no parent
 #[no_mangle]
 pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1parent(
-    env: JNIEnv,
+    mut env: JNIEnv,
     _: JClass,
     this: jlong,
     node_ref: jint,
 ) -> jint {
-    let result = panic::catch_unwind(|| {
+    let result = catch_unwind(|| {
         // only u32 should be passed as node
         let node = u32::try_from(node_ref).expect("value beyond `u32` range");
         let node = NodeRef::new(node as usize);
@@ -597,16 +627,15 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1pare
 
     match result {
         Ok(parent) => parent,
-        Err(_) => {
+        Err(err) => {
             let exception_class = env.find_class("java/lang/RuntimeException").unwrap();
-            env.throw_new(exception_class, "Rust panic occurred").unwrap();
+            let message = format!("Rust panic occurred in Document get_parent: {:?}", err);
+            env.throw_new(exception_class, message).unwrap();
             -1
         }
     }
 }
 
-
-#[no_mangle]
 pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_merge<'local>(
     env: JNIEnv<'local>,
     _: JClass<'local>,
@@ -614,7 +643,9 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_merge<'lo
     other: jlong,
     interface: JObject<'local>,
 ) {
-    let result = panic::catch_unwind(|| {
+    let  env_mutex = Mutex::new(env);
+    let result = catch_unwind(|| {
+        let mut env = env_mutex.lock().unwrap();
         if other <= 0 {
             panic!("Other document reference is invalid");
         }
@@ -670,7 +701,8 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_merge<'lo
                             JValue::Int(node.as_u32() as jint),
                             JValue::Int(0),
                         ],
-                    ).unwrap();
+                    )
+                        .unwrap();
                 }
             }
         }
@@ -679,9 +711,11 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_merge<'lo
 
     match result {
         Ok(_) => (),
-        Err(_) => {
+        Err(err) => {
+            let mut env = env_mutex.lock().unwrap();
             let exception_class = env.find_class("java/lang/RuntimeException").unwrap();
-            env.throw_new(exception_class, "Rust panic occurred").unwrap();
+            let message = format!("Rust panic occurred in Document merge: {:?}", err);
+            env.throw_new(exception_class, message).unwrap();
         }
     }
 }
