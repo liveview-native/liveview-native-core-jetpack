@@ -1,4 +1,4 @@
-use std::panic;
+#[cfg(target_os = "android")]
 use android_logger::Config;
 use cranelift_entity::EntityRef;
 use jni::objects::{JClass, JIntArray, JObject, JObjectArray, JString, JValue};
@@ -9,8 +9,9 @@ use liveview_native_core::ffi::{
     Attribute, AttributeVec, ChangeType, Element, Node, NodeData, NodeType, RustStr,
 };
 use liveview_native_core::{diff, dom};
+#[cfg(target_os = "android")]
 use log::LevelFilter;
-use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::panic::catch_unwind;
 use std::sync::Mutex;
 
 pub struct JavaResult {
@@ -175,18 +176,15 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_node_1to_
     }
 }
 
-
 #[no_mangle]
 pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_root<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
     this: jlong,
 ) -> jint {
-    let result = catch_unwind(|| {
-        unsafe {
-            let dom: &dom::Document = jlong_to_pointer::<dom::Document>(this).as_ref().unwrap();
-            dom.root().as_u32() as jint
-        }
+    let result = catch_unwind(|| unsafe {
+        let dom: &dom::Document = jlong_to_pointer::<dom::Document>(this).as_ref().unwrap();
+        dom.root().as_u32() as jint
     });
 
     match result {
@@ -199,7 +197,6 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_root<'loc
         }
     }
 }
-
 
 #[no_mangle]
 pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node<'local>(
@@ -227,7 +224,6 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node
         }
     }
 }
-
 
 fn from_node(doc: &dom::Document, node: NodeRef) -> Node {
     match doc.get(node) {
@@ -282,7 +278,9 @@ fn from_attr(attr: &dom::Attribute) -> Attribute {
 }
 
 #[no_mangle]
-pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1leaf_1string<'local>(
+pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1leaf_1string<
+    'local,
+>(
     env: JNIEnv<'local>,
     _: JClass<'local>,
     this: jlong,
@@ -311,18 +309,15 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node
     }
 }
 
-
 #[no_mangle]
 pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1type(
     mut env: JNIEnv,
     _: JClass,
     node: jlong,
 ) -> jbyte {
-    let result = catch_unwind(|| {
-        unsafe {
-            let node: &Node = jlong_to_pointer::<Node>(node).as_ref().unwrap();
-            node.ty as jbyte
-        }
+    let result = catch_unwind(|| unsafe {
+        let node: &Node = jlong_to_pointer::<Node>(node).as_ref().unwrap();
+        node.ty as jbyte
     });
 
     match result {
@@ -336,7 +331,6 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node
     }
 }
 
-
 #[no_mangle]
 pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1element(
     env: JNIEnv,
@@ -344,12 +338,10 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node
     node: jlong,
 ) -> jlong {
     let mut clone = unsafe { env.unsafe_clone() };
-    let result = catch_unwind(|| {
-        unsafe {
-            let node: *mut Node = jlong_to_pointer::<Node>(node).as_mut().unwrap();
-            let ret = Box::new((*node).data.element);
-            Box::into_raw(ret) as jlong as jlong
-        }
+    let result = catch_unwind(|| unsafe {
+        let node: *mut Node = jlong_to_pointer::<Node>(node).as_mut().unwrap();
+        let ret = Box::new((*node).data.element);
+        Box::into_raw(ret) as jlong as jlong
     });
 
     match result {
@@ -363,20 +355,17 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node
     }
 }
 
-
 #[no_mangle]
 pub extern "system" fn Java_org_phoenixframework_liveview_lib_Node_00024Element_drop(
-     env: JNIEnv,
+    env: JNIEnv,
     _: JClass,
     this: jlong,
 ) {
     let mut clone = unsafe { env.unsafe_clone() };
-    let result = catch_unwind(|| {
-        unsafe {
-            let dom: *mut Element = jlong_to_pointer::<Element>(this).as_mut().unwrap();
-            let dom = Box::from_raw(dom);
-            drop(dom);
-        }
+    let result = catch_unwind(|| unsafe {
+        let dom: *mut Element = jlong_to_pointer::<Element>(this).as_mut().unwrap();
+        let dom = Box::from_raw(dom);
+        drop(dom);
     });
 
     if let Err(err) = result {
@@ -387,33 +376,37 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Node_00024Element_
 }
 
 #[no_mangle]
-pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1element_1namespace<'local>(
+pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1element_1namespace<
+    'local,
+>(
     env: JNIEnv<'local>,
     _: JClass<'local>,
     element: jlong,
 ) -> JString<'local> {
     let mut clone = unsafe { env.unsafe_clone() };
-    let result = catch_unwind(|| {
-        unsafe {
-            let element: &Element = jlong_to_pointer::<Element>(element).as_mut().unwrap();
-            from_std_string_jstring(String::from(element.namespace.to_str()), env)
-        }
+    let result = catch_unwind(|| unsafe {
+        let element: &Element = jlong_to_pointer::<Element>(element).as_mut().unwrap();
+        from_std_string_jstring(String::from(element.namespace.to_str()), env)
     });
 
     match result {
         Ok(jstring) => jstring,
         Err(err) => {
             let exception_class = clone.find_class("java/lang/RuntimeException").unwrap();
-            let message = format!("Rust panic occurred in get_node_element_namespace: {:?}", err);
+            let message = format!(
+                "Rust panic occurred in get_node_element_namespace: {:?}",
+                err
+            );
             clone.throw_new(exception_class, message).unwrap();
             clone.new_string("").unwrap().into()
         }
     }
 }
 
-
 #[no_mangle]
-pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1element_1tag<'local>(
+pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1element_1tag<
+    'local,
+>(
     env: JNIEnv<'local>,
     _: JClass<'local>,
     element: jlong,
@@ -442,7 +435,7 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node
     _: JClass<'local>,
     element: jlong,
 ) -> JObjectArray<'local> {
-    let  env_mutex = Mutex::new(env);
+    let env_mutex = Mutex::new(env);
     let result = catch_unwind(|| {
         let mut env = env_mutex.lock().unwrap();
         let element: &Element = unsafe { jlong_to_pointer::<Element>(element).as_mut().unwrap() };
@@ -471,13 +464,15 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node
         Err(err) => {
             let mut env = env_mutex.lock().unwrap();
             let exception_class = env.find_class("java/lang/RuntimeException").unwrap();
-            let message = format!("Rust panic occurred in Document get_1node_1element_1attributes: {:?}", err);
+            let message = format!(
+                "Rust panic occurred in Document get_1node_1element_1attributes: {:?}",
+                err
+            );
             env.throw_new(exception_class, message).unwrap();
             JObject::null().into()
         }
     }
 }
-
 
 #[no_mangle]
 pub extern "system" fn Java_org_phoenixframework_liveview_lib_Attribute_drop(
@@ -485,12 +480,10 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Attribute_drop(
     _: JClass,
     this: jlong,
 ) {
-    let result = catch_unwind(|| {
-        unsafe {
-            let dom: *mut Attribute = jlong_to_pointer::<Attribute>(this).as_mut().unwrap();
-            let dom = Box::from_raw(dom);
-            drop(dom);
-        }
+    let result = catch_unwind(|| unsafe {
+        let dom: *mut Attribute = jlong_to_pointer::<Attribute>(this).as_mut().unwrap();
+        let dom = Box::from_raw(dom);
+        drop(dom);
     });
 
     if let Err(err) = result {
@@ -500,7 +493,6 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Attribute_drop(
     }
 }
 
-
 #[no_mangle]
 pub extern "system" fn Java_org_phoenixframework_liveview_lib_Attribute_get_1name<'local>(
     env: JNIEnv<'local>,
@@ -509,7 +501,8 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Attribute_get_1nam
 ) -> JString<'local> {
     let mut clone = unsafe { env.unsafe_clone() };
     let result = catch_unwind(|| {
-        let attribute: &Attribute = unsafe { jlong_to_pointer::<Attribute>(attr).as_mut().unwrap() };
+        let attribute: &Attribute =
+            unsafe { jlong_to_pointer::<Attribute>(attr).as_mut().unwrap() };
         from_std_string_jstring(String::from(attribute.name.to_str()), env)
     });
     match result {
@@ -523,7 +516,6 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Attribute_get_1nam
     }
 }
 
-
 #[no_mangle]
 pub extern "system" fn Java_org_phoenixframework_liveview_lib_Attribute_get_1namespace<'local>(
     env: JNIEnv<'local>,
@@ -532,7 +524,8 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Attribute_get_1nam
 ) -> JString<'local> {
     let mut clone = unsafe { env.unsafe_clone() };
     let result = catch_unwind(|| {
-        let attribute: &Attribute = unsafe { jlong_to_pointer::<Attribute>(attr).as_ref().unwrap() };
+        let attribute: &Attribute =
+            unsafe { jlong_to_pointer::<Attribute>(attr).as_ref().unwrap() };
         from_std_string_jstring(String::from(attribute.namespace.to_str()), env)
     });
 
@@ -549,7 +542,6 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Attribute_get_1nam
     }
 }
 
-
 #[no_mangle]
 pub extern "system" fn Java_org_phoenixframework_liveview_lib_Attribute_get_1value<'local>(
     env: JNIEnv<'local>,
@@ -558,7 +550,8 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Attribute_get_1val
 ) -> JString<'local> {
     let mut clone = unsafe { env.unsafe_clone() };
     let result = catch_unwind(|| {
-        let attribute: &Attribute = unsafe { jlong_to_pointer::<Attribute>(attr).as_ref().unwrap() };
+        let attribute: &Attribute =
+            unsafe { jlong_to_pointer::<Attribute>(attr).as_ref().unwrap() };
         from_std_string_jstring(String::from(attribute.value.to_str()), env)
     });
 
@@ -572,7 +565,6 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Attribute_get_1val
         }
     }
 }
-
 
 #[no_mangle]
 pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1children<'local>(
@@ -597,12 +589,12 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1chil
         Ok(java_array) => java_array,
         Err(_) => {
             let exception_class = env.find_class("java/lang/RuntimeException").unwrap();
-            env.throw_new(exception_class, "Rust panic occurred").unwrap();
+            env.throw_new(exception_class, "Rust panic occurred")
+                .unwrap();
             JObject::null().into()
         }
     }
 }
-
 
 // Java side should ensure only u32 is passed as the node parameter
 // Note! this function returns -1 when there's no parent
@@ -643,7 +635,7 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_merge<'lo
     other: jlong,
     interface: JObject<'local>,
 ) {
-    let  env_mutex = Mutex::new(env);
+    let env_mutex = Mutex::new(env);
     let result = catch_unwind(|| {
         let mut env = env_mutex.lock().unwrap();
         if other <= 0 {
@@ -674,7 +666,7 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_merge<'lo
                             JValue::Int(parent.as_u32() as jint),
                         ],
                     )
-                        .unwrap();
+                    .unwrap();
                 }
                 Some(diff::PatchResult::Remove { node, parent }) => {
                     env.call_method(
@@ -688,7 +680,7 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_merge<'lo
                             JValue::Int(parent.as_u32() as jint),
                         ],
                     )
-                        .unwrap();
+                    .unwrap();
                 }
                 Some(diff::PatchResult::Change { node }) => {
                     env.call_method(
@@ -702,7 +694,7 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_merge<'lo
                             JValue::Int(0),
                         ],
                     )
-                        .unwrap();
+                    .unwrap();
                 }
             }
         }
