@@ -10,9 +10,9 @@ name = "liveview_native_core"
 crate-type = ["cdylib"]
 
 [dependencies]
-cranelift-entity = "0.87"
-jni = "0.21.0"
-log = "0.4.17"
+cranelift-entity = "0.96"
+jni = "0.21"
+log = "0.4"
 log-panics = { version = "2", features = ["with-backtrace"] }
-android_logger = "0.13.1"
+android_logger = "0.13.3"
 liveview-native-core = { git = "https://github.com/liveview-native/liveview-native-core.git" }
