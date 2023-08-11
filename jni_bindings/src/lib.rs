@@ -428,6 +428,7 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node
     }
 }
 
+#[no_mangle]
 pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1element_1attributes<
     'local,
 >(
@@ -628,6 +629,7 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1pare
     }
 }
 
+#[no_mangle]
 pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_merge<'local>(
     env: JNIEnv<'local>,
     _: JClass<'local>,
