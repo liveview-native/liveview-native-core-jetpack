@@ -31,7 +31,8 @@ class Document {
         enum class ChangeType {
             Change,
             Add,
-            Remove
+            Remove,
+            Replace
         }
 
         open class Handler {

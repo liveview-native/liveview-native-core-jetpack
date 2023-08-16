@@ -698,6 +698,20 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_merge<'lo
                     )
                     .unwrap();
                 }
+                Some(diff::PatchResult::Replace { node, parent }) => {
+                    env.call_method(
+                        &interface,
+                        "mOnHandle",
+                        "(JBII)V",
+                        &[
+                            JValue::Long(this),
+                            JValue::Byte(ChangeType::Replace as jbyte),
+                            JValue::Int(node.as_u32() as jint),
+                            JValue::Int(parent.as_u32() as jint),
+                        ],
+                    )
+                    .unwrap();
+                }
             }
         }
         editor.finish();
