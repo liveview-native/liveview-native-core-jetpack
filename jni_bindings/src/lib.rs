@@ -288,7 +288,7 @@ pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_ge
     }
 }
 
-fn from_node(doc: &Document, node: NodeRef) -> Node {
+fn from_node(doc: &Document, node: NodeRef) -> Node<'_> {
     match doc.get(node) {
         dom::Node::Root => Node {
             ty: NodeType::Root,
@@ -444,17 +444,17 @@ pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Node_00024E
 }
 
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1element_1namespace<
+pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Element_get_1namespace<
     'local,
 >(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
     // non-null raw pointer to Element
-    element: jlong,
+    this: jlong,
 ) -> JString<'local> {
-    let element = element as *mut Element;
+    let this = this as *mut Element;
 
-    if element.is_null() {
+    if this.is_null() {
         env.throw_new(
             "java/lang/NullPointerException",
             "Document::get_node_element_namespace called with null pointer",
@@ -463,24 +463,24 @@ pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_ge
 
         JObject::null().into()
     } else {
-        let element = &*element;
+        let element = &*this;
         env.new_string(element.namespace.to_str())
             .unwrap_or_else(|_| JObject::null().into())
     }
 }
 
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1element_1tag<
+pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Element_get_1tag<
     'local,
 >(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
     // non-null raw pointer to Element
-    element: jlong,
+    this: jlong,
 ) -> JString<'local> {
-    let element = element as *mut Element;
+    let this = this as *mut Element;
 
-    if element.is_null() {
+    if this.is_null() {
         env.throw_new(
             "java/lang/NullPointerException",
             "Document::get_node_element_tag called with null pointer",
@@ -489,24 +489,24 @@ pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_ge
 
         JObject::null().into()
     } else {
-        let element = &*element;
+        let element = &*this;
         env.new_string(element.tag.to_str())
             .unwrap_or_else(|_| JObject::null().into())
     }
 }
 
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1element_1attributes<
+pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Element_get_1attributes<
     'local,
 >(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
     // non-null raw pointer to Element
-    element: jlong,
+    this: jlong,
 ) -> JObjectArray<'local> {
-    let element = element as *mut Element;
+    let this = this as *mut Element;
 
-    if element.is_null() {
+    if this.is_null() {
         env.throw_new(
             "java/lang/NullPointerException",
             "Document::get_node_element_attributes called with null pointer",
@@ -515,7 +515,7 @@ pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_ge
 
         JObject::null().into()
     } else {
-        let element = &*element;
+        let element = &*this;
 
         let mut attributes = element.attributes.to_vec();
 
