@@ -1,48 +1,44 @@
 #[cfg(target_os = "android")]
 use android_logger::Config;
 use cranelift_entity::EntityRef;
-use jni::objects::{JClass, JIntArray, JObject, JObjectArray, JString, JValue};
-use jni::sys::{jbyte, jint, jlong, jsize};
-use jni::JNIEnv;
-use liveview_native_core::dom::NodeRef;
-use liveview_native_core::ffi::{
-    Attribute, AttributeVec, ChangeType, Element, Node, NodeData, NodeType, RustStr,
+use jni::{
+    objects::{JClass, JIntArray, JObject, JObjectArray, JString, JValue},
+    sys::{jbyte, jint, jlong, jsize},
+    JNIEnv,
 };
-use liveview_native_core::{diff, dom};
+use liveview_native_core::{
+    diff,
+    diff::PatchResult,
+    dom,
+    dom::{Document, NodeRef},
+    ffi::{Attribute, AttributeVec, ChangeType, Element, Node, NodeData, NodeType, RustStr},
+};
 #[cfg(target_os = "android")]
 use log::LevelFilter;
-use std::panic::catch_unwind;
-use std::sync::Mutex;
 
 pub struct JavaResult {
+    /// Raw pointer to Document
     pub val: jlong,
     pub error_msg: String,
 }
 
-#[cfg(target_pointer_width = "32")]
-pub fn jlong_to_pointer<T>(val: jlong) -> *mut T {
-    (val as u32) as *mut T
-}
-
-#[cfg(target_pointer_width = "64")]
-pub fn jlong_to_pointer<T>(val: jlong) -> *mut T {
-    val as *mut T
-}
-
-pub fn from_std_string_jstring<S: AsRef<str>>(x: S, env: JNIEnv) -> JString {
-    env.new_string(x).unwrap()
-}
-
 #[no_mangle]
-pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_drop(
-    _env: JNIEnv,
+pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_drop(
+    mut env: JNIEnv,
     _: JClass,
+    // non-null raw pointer to Document
     this: jlong,
 ) {
-    unsafe {
-        let dom: *mut dom::Document = jlong_to_pointer::<dom::Document>(this).as_mut().unwrap();
-        let dom = Box::from_raw(dom);
-        drop(dom);
+    let this = this as *mut Document;
+
+    if this.is_null() {
+        env.throw_new(
+            "java/lang/NullPointerException",
+            "Document::drop called with `this` as null pointer",
+        )
+        .unwrap();
+    } else {
+        let _doc = Box::from_raw(this);
     }
 }
 
@@ -50,10 +46,10 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_drop(
 pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_empty(
     _env: JNIEnv,
     _: JClass,
+    // raw pointer to new, empty Document
 ) -> jlong {
-    let document = Box::new(dom::Document::empty());
-    let raw = Box::into_raw(document);
-    raw as jlong
+    let doc = Box::new(Document::empty());
+    Box::into_raw(doc) as jlong
 }
 
 #[no_mangle]
@@ -73,6 +69,7 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_00024Comp
     log::error!("Logging initialised from Rust");
 }
 
+/// Returns raw pointer to JavaResult
 #[no_mangle]
 pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_00024Companion_do_1parse<
     'local,
@@ -80,14 +77,15 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_00024Comp
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
     text: JString<'local>,
+    // raw pointer to JavaResult
 ) -> jlong {
     let text: String = env.get_string(&text).unwrap().into();
-    let result = match dom::Document::parse(text) {
+    let result = match Document::parse(text) {
         Ok(doc) => {
             let doc = Box::new(doc);
             JavaResult {
                 val: Box::into_raw(doc) as jlong,
-                error_msg: "".into(),
+                error_msg: String::new(),
             }
         }
         Err(err) => JavaResult {
@@ -95,137 +93,202 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_00024Comp
             error_msg: err.to_string(),
         },
     };
-    let ret = Box::new(result);
-    Box::into_raw(ret) as jlong
+    let result = Box::new(result);
+    Box::into_raw(result) as jlong
 }
 
 #[no_mangle]
-pub extern "system" fn Java_org_phoenixframework_liveview_lib_JavaResult_drop<'local>(
-    _env: JNIEnv<'local>,
+pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_JavaResult_drop<'local>(
+    mut env: JNIEnv<'local>,
     _: JClass<'local>,
-    j_result: jlong,
+    // non-null raw pointer to JavaResult
+    this: jlong,
 ) {
-    unsafe {
-        let java_result: *mut JavaResult =
-            jlong_to_pointer::<JavaResult>(j_result).as_mut().unwrap();
-        let java_result = Box::from_raw(java_result);
-        drop(java_result);
+    let this = this as *mut JavaResult;
+
+    if this.is_null() {
+        env.throw_new(
+            "java/lang/NullPointerException",
+            "JavaResult::drop called with `this` as null pointer",
+        )
+        .unwrap();
+    } else {
+        let _result = Box::from_raw(this);
     }
 }
 
-// returns pointer to document else 0
+/// Returns raw pointer to Document else 0
 #[no_mangle]
-pub extern "system" fn Java_org_phoenixframework_liveview_lib_JavaResult_get_1val<'local>(
-    _env: JNIEnv<'local>,
+pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_JavaResult_get_1val<'local>(
+    mut env: JNIEnv<'local>,
     _: JClass<'local>,
-    j_result: jlong,
+    // non-null raw pointer to JavaResult wrapping *mut Document
+    this: jlong,
+    // Raw pointer to Document
 ) -> jlong {
-    unsafe {
-        let java_result: &mut JavaResult =
-            jlong_to_pointer::<JavaResult>(j_result).as_mut().unwrap();
-        java_result.val
+    let this = this as *mut JavaResult;
+
+    if this.is_null() {
+        env.throw_new(
+            "java/lang/NullPointerException",
+            "JavaResult::get_val called with `this` as null pointer",
+        )
+        .unwrap();
+
+        0
+    } else {
+        let result = &mut *this;
+        result.val as jlong
     }
 }
 
 #[no_mangle]
-pub extern "system" fn Java_org_phoenixframework_liveview_lib_JavaResult_get_1error<'local>(
-    env: JNIEnv<'local>,
+pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_JavaResult_get_1error<
+    'local,
+>(
+    mut env: JNIEnv<'local>,
     _: JClass<'local>,
-    j_result: jlong,
+    // non-null raw pointer to JavaResult
+    this: jlong,
 ) -> JString<'local> {
-    unsafe {
-        let java_result: &JavaResult = jlong_to_pointer::<JavaResult>(j_result).as_mut().unwrap();
-        from_std_string_jstring(&java_result.error_msg, env)
+    let this = this as *mut JavaResult;
+
+    if this.is_null() {
+        env.throw_new(
+            "java/lang/NullPointerException",
+            "JavaResult::get_error called with `this` as null pointer",
+        )
+        .unwrap();
+
+        JObject::null().into()
+    } else {
+        let result = &*this;
+
+        env.new_string(result.error_msg.as_str())
+            .unwrap_or_else(|_| JObject::null().into())
     }
 }
 
-// takes dom
 #[no_mangle]
-pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_do_1to_1string<'local>(
-    env: JNIEnv<'local>,
+pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_do_1to_1string<
+    'local,
+>(
+    mut env: JNIEnv<'local>,
     _: JClass<'local>,
-    dom: jlong,
+    // non-null raw pointer to Document
+    this: jlong,
 ) -> JString<'local> {
-    unsafe {
-        let dom: &dom::Document = jlong_to_pointer::<dom::Document>(dom).as_mut().unwrap();
-        from_std_string_jstring(dom.to_string(), env)
+    let this = this as *mut Document;
+
+    if this.is_null() {
+        env.throw_new(
+            "java/lang/NullPointerException",
+            "Document::do_to_string call with `this` as null pointer",
+        )
+        .unwrap();
+
+        JObject::null().into()
+    } else {
+        let doc = &*this;
+
+        env.new_string(doc.to_string())
+            .unwrap_or_else(|_| JObject::null().into())
     }
 }
 
 // Java side should ensure only u32 is passed as the node parameter
 #[no_mangle]
-pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_node_1to_1string<'local>(
+pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_node_1to_1string<
+    'local,
+>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
+    // non-null raw pointer to Document
     this: jlong,
-    node: jint,
+    // NodeRef is the distinct u32 key mapped to a Node (and not a Node raw pointer)
+    node_ref: jint,
 ) -> JString<'local> {
-    // only u32 should be passed as node
-    let node = u32::try_from(node).expect("value beyond `u32` range");
-    let node = NodeRef::new(node as usize);
-    let dom = unsafe { jlong_to_pointer::<dom::Document>(this).as_ref().unwrap() };
-    let mut buf = String::new();
+    let this = this as *mut Document;
 
-    if let Err(err) = dom.print_node(node, &mut buf, dom::PrintOptions::Pretty) {
-        let exception_class = env.find_class("java/lang/RuntimeException").unwrap();
-        let message = format!("Rust panic occurred in node_to_string: {:?}", err);
-        env.throw_new(exception_class, message).unwrap();
+    if this.is_null() {
+        env.throw_new(
+            "java/lang/NullPointerException",
+            "Document::node_to_string called with `this` as null pointer",
+        )
+        .unwrap();
+
         JObject::null().into()
     } else {
-        from_std_string_jstring(buf, env)
+        let node_ref = NodeRef::new(node_ref as usize);
+        let doc = &*this;
+        let mut buf = String::new();
+
+        if let Err(err) = doc.print_node(node_ref, &mut buf, dom::PrintOptions::Pretty) {
+            let message = format!("Document::node_to_string failed: {:?}", err);
+            env.throw_new("java/lang/RuntimeException", message)
+                .unwrap();
+
+            JObject::null().into()
+        } else {
+            env.new_string(buf)
+                .unwrap_or_else(|_| JObject::null().into())
+        }
     }
 }
 
 #[no_mangle]
-pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_root<'local>(
+pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_root<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
+    // non-null raw pointer to Document
     this: jlong,
+    // NodeRef of root
 ) -> jint {
-    let result = catch_unwind(|| unsafe {
-        let dom: &dom::Document = jlong_to_pointer::<dom::Document>(this).as_ref().unwrap();
-        dom.root().as_u32() as jint
-    });
+    let this = this as *mut Document;
 
-    match result {
-        Ok(jint) => jint,
-        Err(err) => {
-            let exception_class = env.find_class("java/lang/RuntimeException").unwrap();
-            let message = format!("Rust panic occurred in Document_root: {:?}", err);
-            env.throw_new(exception_class, message).unwrap();
-            0
-        }
+    if this.is_null() {
+        env.throw_new(
+            "java/lang/NullPointerException",
+            "Document::root called with `this` as null pointer",
+        )
+        .unwrap();
+
+        0
+    } else {
+        let doc = &*this;
+        doc.root().as_u32() as jint
     }
 }
 
 #[no_mangle]
-pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node<'local>(
+pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
+    // non-null raw pointer to Document
     this: jlong,
+    // NodeRef is the distinct u32 key mapped to a Node (and not a Node raw pointer)
     node_ref: jint,
+    // Raw pointer to Node
 ) -> jlong {
-    let result = catch_unwind(|| {
-        // only u32 should be passed as node
-        let node = u32::try_from(node_ref).expect("value beyond `u32` range");
-        let node = NodeRef::new(node as usize);
-        let dom = unsafe { jlong_to_pointer::<dom::Document>(this).as_ref().unwrap() };
-        let node = Box::new(from_node(&dom, node));
-        Box::into_raw(node) as jlong
-    });
+    let this = this as *mut Document;
 
-    match result {
-        Ok(jlong) => jlong,
-        Err(err) => {
-            let exception_class = env.find_class("java/lang/RuntimeException").unwrap();
-            let message = format!("Rust panic occurred in get_node: {:?}", err);
-            env.throw_new(exception_class, message).unwrap();
-            0
-        }
+    if this.is_null() {
+        env.throw_new(
+            "java/lang/NullPointerException",
+            "Document::get_node called with `this` as null pointer",
+        )
+        .unwrap();
+
+        0
+    } else {
+        let node = NodeRef::new(node_ref as usize);
+        let doc = &*this;
+        let node = Box::new(from_node(&doc, node));
+        Box::into_raw(node) as jlong
     }
 }
 
-fn from_node(doc: &dom::Document, node: NodeRef) -> Node {
+fn from_node(doc: &Document, node: NodeRef) -> Node {
     match doc.get(node) {
         dom::Node::Root => Node {
             ty: NodeType::Root,
@@ -278,169 +341,184 @@ fn from_attr(attr: &dom::Attribute) -> Attribute {
 }
 
 #[no_mangle]
-pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1leaf_1string<
+pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1leaf_1string<
     'local,
 >(
-    env: JNIEnv<'local>,
+    mut env: JNIEnv<'local>,
     _: JClass<'local>,
+    // non-null raw pointer to Document
     this: jlong,
+    // NodeRef is the distinct u32 key mapped to a Node (and not a Node raw pointer)
     node_ref: jint,
 ) -> JString<'local> {
-    let mut clone = unsafe { env.unsafe_clone() };
-    let result = catch_unwind(|| {
-        let node = u32::try_from(node_ref).expect("value beyond `u32` range");
-        let node = NodeRef::new(node as usize);
-        let doc = unsafe { jlong_to_pointer::<dom::Document>(this).as_ref().unwrap() };
-        match doc.get(node) {
-            dom::Node::Leaf(ref s) => Ok(from_std_string_jstring(s.to_string(), env)),
-            _ => Err(String::from("node isn't a leaf")),
-        }
-    });
+    let this = this as *mut Document;
 
-    match result {
-        Ok(jstring) => jstring.unwrap(),
-        Err(err) => {
-            let exception_class = clone.find_class("java/lang/RuntimeException").unwrap();
-            let message = format!("Rust panic occurred in get_node_leaf_string: {:?}", err);
-            clone.throw_new(exception_class, message).unwrap();
-            //convert message to jstring and return
-            JObject::null().into()
+    if this.is_null() {
+        env.throw_new(
+            "java/lang/NullPointerException",
+            "Document::get_node_leaf_string called with `this` as null pointer",
+        )
+        .unwrap();
+
+        JObject::null().into()
+    } else {
+        let node = NodeRef::new(node_ref as usize);
+        let doc = &*this;
+
+        match doc.get(node) {
+            dom::Node::Leaf(ref s) => env
+                .new_string(s.as_str())
+                .unwrap_or_else(|_| JObject::null().into()),
+            _ => JObject::null().into(),
         }
     }
 }
 
 #[no_mangle]
-pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1type(
+pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1type(
     mut env: JNIEnv,
     _: JClass,
+    // non-null raw pointer to Node
     node: jlong,
 ) -> jbyte {
-    let result = catch_unwind(|| unsafe {
-        let node: &Node = jlong_to_pointer::<Node>(node).as_ref().unwrap();
+    let node = node as *mut Node;
+
+    if node.is_null() {
+        env.throw_new(
+            "java/lang/NullPointerException",
+            "Document::get_node_type called with `node` as null pointer",
+        )
+        .unwrap();
+
+        0
+    } else {
+        let node = &*node;
         node.ty as jbyte
-    });
-
-    match result {
-        Ok(jbyte) => jbyte,
-        Err(err) => {
-            let exception_class = env.find_class("java/lang/RuntimeException").unwrap();
-            let message = format!("Rust panic occurred in get_node_type: {:?}", err);
-            env.throw_new(exception_class, message).unwrap();
-            0
-        }
     }
 }
 
 #[no_mangle]
-pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1element(
-    env: JNIEnv,
+pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1element(
+    mut env: JNIEnv,
     _: JClass,
+    // non-null raw pointer to node
     node: jlong,
+    // Raw pointer to Element
 ) -> jlong {
-    let mut clone = unsafe { env.unsafe_clone() };
-    let result = catch_unwind(|| unsafe {
-        let node: *mut Node = jlong_to_pointer::<Node>(node).as_mut().unwrap();
-        let ret = Box::new((*node).data.element);
-        Box::into_raw(ret) as jlong as jlong
-    });
+    let node = node as *mut Node;
 
-    match result {
-        Ok(jlong) => jlong,
-        Err(err) => {
-            let exception_class = clone.find_class("java/lang/RuntimeException").unwrap();
-            let message = format!("Rust panic occurred in get_node_element: {:?}", err);
-            clone.throw_new(exception_class, message).unwrap();
-            0
-        }
+    if node.is_null() {
+        env.throw_new(
+            "java/lang/NullPointerException",
+            "Document::get_node_element called with `node` as null pointer",
+        )
+        .unwrap();
+
+        0
+    } else {
+        let node = &*node;
+        let element = Box::new(node.data.element.clone());
+
+        Box::into_raw(element) as jlong
     }
 }
 
 #[no_mangle]
-pub extern "system" fn Java_org_phoenixframework_liveview_lib_Node_00024Element_drop(
-    env: JNIEnv,
+pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Node_00024Element_drop(
+    mut env: JNIEnv,
     _: JClass,
+    // non-null raw pointer to Element
     this: jlong,
 ) {
-    let mut clone = unsafe { env.unsafe_clone() };
-    let result = catch_unwind(|| unsafe {
-        let dom: *mut Element = jlong_to_pointer::<Element>(this).as_mut().unwrap();
-        let dom = Box::from_raw(dom);
-        drop(dom);
-    });
+    let this = this as *mut Element;
 
-    if let Err(err) = result {
-        let exception_class = clone.find_class("java/lang/RuntimeException").unwrap();
-        let message = format!("Rust panic occurred in Element drop: {:?}", err);
-        clone.throw_new(exception_class, message).unwrap();
+    if this.is_null() {
+        env.throw_new(
+            "java/lang/NullPointerException",
+            "Node::element_drop called with null pointer",
+        )
+        .unwrap();
+    } else {
+        let _element = Box::from_raw(this);
     }
 }
 
 #[no_mangle]
-pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1element_1namespace<
+pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1element_1namespace<
     'local,
 >(
-    env: JNIEnv<'local>,
+    mut env: JNIEnv<'local>,
     _: JClass<'local>,
+    // non-null raw pointer to Element
     element: jlong,
 ) -> JString<'local> {
-    let mut clone = unsafe { env.unsafe_clone() };
-    let result = catch_unwind(|| unsafe {
-        let element: &Element = jlong_to_pointer::<Element>(element).as_mut().unwrap();
-        from_std_string_jstring(String::from(element.namespace.to_str()), env)
-    });
+    let element = element as *mut Element;
 
-    match result {
-        Ok(jstring) => jstring,
-        Err(err) => {
-            let exception_class = clone.find_class("java/lang/RuntimeException").unwrap();
-            let message = format!(
-                "Rust panic occurred in get_node_element_namespace: {:?}",
-                err
-            );
-            clone.throw_new(exception_class, message).unwrap();
-            clone.new_string("").unwrap().into()
-        }
+    if element.is_null() {
+        env.throw_new(
+            "java/lang/NullPointerException",
+            "Document::get_node_element_namespace called with null pointer",
+        )
+        .unwrap();
+
+        JObject::null().into()
+    } else {
+        let element = &*element;
+        env.new_string(element.namespace.to_str())
+            .unwrap_or_else(|_| JObject::null().into())
     }
 }
 
 #[no_mangle]
-pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1element_1tag<
+pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1element_1tag<
     'local,
 >(
-    env: JNIEnv<'local>,
+    mut env: JNIEnv<'local>,
     _: JClass<'local>,
+    // non-null raw pointer to Element
     element: jlong,
 ) -> JString<'local> {
-    let mut clone = unsafe { env.unsafe_clone() };
-    let result = catch_unwind(|| {
-        let element: &Element = unsafe { jlong_to_pointer::<Element>(element).as_mut().unwrap() };
-        from_std_string_jstring(String::from(element.tag.to_str()), env)
-    });
+    let element = element as *mut Element;
 
-    match result {
-        Ok(jstring) => jstring,
-        Err(err) => {
-            let exception_class = clone.find_class("java/lang/RuntimeException").unwrap();
-            let message = format!("Rust panic occurred in get_node_element_tag: {:?}", err);
-            clone.throw_new(exception_class, message).unwrap();
-            clone.new_string("").unwrap().into()
-        }
+    if element.is_null() {
+        env.throw_new(
+            "java/lang/NullPointerException",
+            "Document::get_node_element_tag called with null pointer",
+        )
+        .unwrap();
+
+        JObject::null().into()
+    } else {
+        let element = &*element;
+        env.new_string(element.tag.to_str())
+            .unwrap_or_else(|_| JObject::null().into())
     }
 }
 
 #[no_mangle]
-pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1element_1attributes<
+pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node_1element_1attributes<
     'local,
 >(
-    env: JNIEnv<'local>,
+    mut env: JNIEnv<'local>,
     _: JClass<'local>,
+    // non-null raw pointer to Element
     element: jlong,
 ) -> JObjectArray<'local> {
-    let env_mutex = Mutex::new(env);
-    let result = catch_unwind(|| {
-        let mut env = env_mutex.lock().unwrap();
-        let element: &Element = unsafe { jlong_to_pointer::<Element>(element).as_mut().unwrap() };
+    let element = element as *mut Element;
+
+    if element.is_null() {
+        env.throw_new(
+            "java/lang/NullPointerException",
+            "Document::get_node_element_attributes called with null pointer",
+        )
+        .unwrap();
+
+        JObject::null().into()
+    } else {
+        let element = &*element;
+
         let mut attributes = element.attributes.to_vec();
+
         let attribute_class = env
             .find_class("org/phoenixframework/liveview/lib/Attribute")
             .expect("No such class");
@@ -448,6 +526,7 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node
         let array = env
             .new_object_array(attributes.len() as jsize, &attribute_class, JObject::null())
             .expect("unable to create array");
+
         for (i, obj) in attributes.drain(..).enumerate() {
             let obj = Box::new(obj);
             let obj = Box::into_raw(obj) as jlong;
@@ -457,273 +536,268 @@ pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1node
             env.set_object_array_element(&array, i as jsize, &java_object)
                 .unwrap();
         }
-        array
-    });
 
-    match result {
-        Ok(jobject_array) => jobject_array,
-        Err(err) => {
-            let mut env = env_mutex.lock().unwrap();
-            let exception_class = env.find_class("java/lang/RuntimeException").unwrap();
-            let message = format!(
-                "Rust panic occurred in Document get_1node_1element_1attributes: {:?}",
-                err
-            );
-            env.throw_new(exception_class, message).unwrap();
-            JObject::null().into()
-        }
+        array
     }
 }
 
 #[no_mangle]
-pub extern "system" fn Java_org_phoenixframework_liveview_lib_Attribute_drop(
+pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Attribute_drop(
     mut env: JNIEnv,
     _: JClass,
+    // non-null raw pointer to Attribute
     this: jlong,
 ) {
-    let result = catch_unwind(|| unsafe {
-        let dom: *mut Attribute = jlong_to_pointer::<Attribute>(this).as_mut().unwrap();
-        let dom = Box::from_raw(dom);
-        drop(dom);
-    });
+    let this = this as *mut Attribute;
 
-    if let Err(err) = result {
-        let exception_class = env.find_class("java/lang/RuntimeException").unwrap();
-        let message = format!("Rust panic occurred in Attribute drop: {:?}", err);
-        env.throw_new(exception_class, message).unwrap();
+    if this.is_null() {
+        env.throw_new(
+            "java/lang/NullPointerException",
+            "Attribute::drop called with `this` as null pointer",
+        )
+        .unwrap();
+    } else {
+        let _attr = Box::from_raw(this);
     }
 }
 
 #[no_mangle]
-pub extern "system" fn Java_org_phoenixframework_liveview_lib_Attribute_get_1name<'local>(
-    env: JNIEnv<'local>,
-    _: JClass<'local>,
-    attr: jlong,
-) -> JString<'local> {
-    let mut clone = unsafe { env.unsafe_clone() };
-    let result = catch_unwind(|| {
-        let attribute: &Attribute =
-            unsafe { jlong_to_pointer::<Attribute>(attr).as_mut().unwrap() };
-        from_std_string_jstring(String::from(attribute.name.to_str()), env)
-    });
-    match result {
-        Ok(jstring) => jstring,
-        Err(err) => {
-            let exception_class = clone.find_class("java/lang/RuntimeException").unwrap();
-            let message = format!("Rust panic occurred in get_attribute_name: {:?}", err);
-            clone.throw_new(exception_class, message).unwrap();
-            clone.new_string("").unwrap().into()
-        }
-    }
-}
-
-#[no_mangle]
-pub extern "system" fn Java_org_phoenixframework_liveview_lib_Attribute_get_1namespace<'local>(
-    env: JNIEnv<'local>,
-    _: JClass<'local>,
-    attr: jlong,
-) -> JString<'local> {
-    let mut clone = unsafe { env.unsafe_clone() };
-    let result = catch_unwind(|| {
-        let attribute: &Attribute =
-            unsafe { jlong_to_pointer::<Attribute>(attr).as_ref().unwrap() };
-        from_std_string_jstring(String::from(attribute.namespace.to_str()), env)
-    });
-
-    match result {
-        Ok(jstring) => jstring,
-        Err(err) => {
-            let exception_class = clone
-                .find_class("java/lang/RuntimeException")
-                .expect("Could not find exception class");
-            let message = format!("Rust panic occurred in get_namespace: {:?}", err);
-            clone.throw_new(exception_class, message).unwrap();
-            clone.new_string("").unwrap().into()
-        }
-    }
-}
-
-#[no_mangle]
-pub extern "system" fn Java_org_phoenixframework_liveview_lib_Attribute_get_1value<'local>(
-    env: JNIEnv<'local>,
-    _: JClass<'local>,
-    attr: jlong,
-) -> JString<'local> {
-    let mut clone = unsafe { env.unsafe_clone() };
-    let result = catch_unwind(|| {
-        let attribute: &Attribute =
-            unsafe { jlong_to_pointer::<Attribute>(attr).as_ref().unwrap() };
-        from_std_string_jstring(String::from(attribute.value.to_str()), env)
-    });
-
-    match result {
-        Ok(jstring) => jstring,
-        Err(err) => {
-            let exception_class = clone.find_class("java/lang/RuntimeException").unwrap();
-            let message = format!("Rust panic occurred in get_attribute_value: {:?}", err);
-            clone.throw_new(exception_class, message).unwrap();
-            clone.new_string("").unwrap().into()
-        }
-    }
-}
-
-#[no_mangle]
-pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1children<'local>(
+pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Attribute_get_1name<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
+    // non-null raw pointer to Attribute
     this: jlong,
+) -> JString<'local> {
+    let this = this as *mut Attribute;
+
+    if this.is_null() {
+        env.throw_new(
+            "java/lang/NullPointerException",
+            "Attribute::get_name called with null pointer",
+        )
+        .unwrap();
+
+        JObject::null().into()
+    } else {
+        let attr = &*(this as *mut Attribute);
+        env.new_string(attr.name.to_str())
+            .unwrap_or_else(|_| JObject::null().into())
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Attribute_get_1namespace<
+    'local,
+>(
+    mut env: JNIEnv<'local>,
+    _: JClass<'local>,
+    // non-null raw pointer to Attribute
+    this: jlong,
+) -> JString<'local> {
+    let this = this as *mut Attribute;
+
+    if this.is_null() {
+        env.throw_new(
+            "java/lang/NullPointerException",
+            "Attribute::get_namespace called with null pointer",
+        )
+        .unwrap();
+
+        JObject::null().into()
+    } else {
+        let attr = &*this;
+        env.new_string(attr.namespace.to_str())
+            .unwrap_or_else(|_| JObject::null().into())
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Attribute_get_1value<
+    'local,
+>(
+    mut env: JNIEnv<'local>,
+    _: JClass<'local>,
+    // non-null raw-pointer to Attribute
+    this: jlong,
+) -> JString<'local> {
+    let this = this as *mut Attribute;
+
+    if this.is_null() {
+        env.throw_new(
+            "java/lang/NullPointerException",
+            "Attribute::get_value called with null pointer",
+        )
+        .unwrap();
+
+        JObject::null().into()
+    } else {
+        let attr = &*this;
+        env.new_string(attr.value.to_str())
+            .unwrap_or_else(|_| JObject::null().into())
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1children<
+    'local,
+>(
+    mut env: JNIEnv<'local>,
+    _: JClass<'local>,
+    // non-null raw pointer to Document
+    this: jlong,
+    // NodeRef is the distinct u32 key mapped to a Node (and not a Node raw pointer)
     node_ref: jint,
 ) -> JIntArray<'local> {
-    let result = catch_unwind(|| {
-        // only u32 should be passed as node
-        let node = u32::try_from(node_ref).expect("value beyond `u32` range");
-        let node = NodeRef::new(node as usize);
-        let dom = unsafe { jlong_to_pointer::<dom::Document>(this).as_ref().unwrap() };
-        let children = dom.children(node);
-        let java_array = env.new_int_array(children.len() as jsize).unwrap();
-        let children: Vec<jint> = children.into_iter().map(|n| n.as_u32() as jint).collect();
-        env.set_int_array_region(&java_array, 0, &children).unwrap();
-        java_array
-    });
+    let this = this as *mut Document;
 
-    match result {
-        Ok(java_array) => java_array,
-        Err(_) => {
-            let exception_class = env.find_class("java/lang/RuntimeException").unwrap();
-            env.throw_new(exception_class, "Rust panic occurred")
-                .unwrap();
-            JObject::null().into()
-        }
+    if this.is_null() {
+        env.throw_new(
+            "java/lang/NullPointerException",
+            "Document::get_children called with null pointer",
+        )
+        .unwrap();
+
+        JObject::null().into()
+    } else {
+        let node = NodeRef::new(node_ref as usize);
+        let doc = &*this;
+        let children = doc.children(node);
+        let buff = env.new_int_array(children.len() as jsize).unwrap();
+        let children: Vec<jint> = children.into_iter().map(|n| n.as_u32() as jint).collect();
+        env.set_int_array_region(&buff, 0, &children).unwrap();
+        buff
     }
 }
 
 // Java side should ensure only u32 is passed as the node parameter
 // Note! this function returns -1 when there's no parent
 #[no_mangle]
-pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1parent(
+pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_get_1parent(
     mut env: JNIEnv,
     _: JClass,
+    // non-null raw pointer to Document
     this: jlong,
+    // NodeRef is the distinct u32 key mapped to a Node (and not a Node raw pointer)
     node_ref: jint,
 ) -> jint {
-    let result = catch_unwind(|| {
-        // only u32 should be passed as node
-        let node = u32::try_from(node_ref).expect("value beyond `u32` range");
-        let node = NodeRef::new(node as usize);
-        let dom = unsafe { jlong_to_pointer::<dom::Document>(this).as_ref().unwrap() };
+    let this = this as *mut Document;
 
-        match dom.parent(node) {
+    if this.is_null() {
+        env.throw_new(
+            "java/lang/NullPointerException",
+            "Document::get_parent called with null pointer",
+        )
+        .unwrap();
+
+        -1
+    } else {
+        let node = NodeRef::new(node_ref as usize);
+        let doc = &*this;
+
+        match doc.parent(node) {
             Some(parent) => parent.as_u32() as jint,
             None => -1,
-        }
-    });
-
-    match result {
-        Ok(parent) => parent,
-        Err(err) => {
-            let exception_class = env.find_class("java/lang/RuntimeException").unwrap();
-            let message = format!("Rust panic occurred in Document get_parent: {:?}", err);
-            env.throw_new(exception_class, message).unwrap();
-            -1
         }
     }
 }
 
 #[no_mangle]
-pub extern "system" fn Java_org_phoenixframework_liveview_lib_Document_merge<'local>(
-    env: JNIEnv<'local>,
+pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_merge<'local>(
+    mut env: JNIEnv<'local>,
     _: JClass<'local>,
+    // non-null raw pointer to Document
     this: jlong,
+    // non-null raw pointer to other Document
     other: jlong,
+    // Callback handle interface
     interface: JObject<'local>,
 ) {
-    let env_mutex = Mutex::new(env);
-    let result = catch_unwind(|| {
-        let mut env = env_mutex.lock().unwrap();
-        if other <= 0 {
-            panic!("Other document reference is invalid");
-        }
+    let this = this as *mut Document;
+    let other = other as *mut Document;
 
-        let doc = unsafe { jlong_to_pointer::<dom::Document>(this).as_mut().unwrap() };
-        let other = unsafe { jlong_to_pointer::<dom::Document>(other).as_ref().unwrap() };
-        let mut patches = crate::diff::diff(doc, other);
-        if patches.is_empty() {
-            return;
-        }
-        let mut editor = doc.edit();
-        let mut stack = vec![];
-        for patch in patches.drain(..) {
-            let patch_result = patch.apply(&mut editor, &mut stack);
-            match patch_result {
-                None => (),
-                Some(diff::PatchResult::Add { node, parent }) => {
-                    env.call_method(
-                        &interface,
-                        "mOnHandle",
-                        "(JBII)V",
-                        &[
-                            JValue::Long(this),
-                            JValue::Byte(ChangeType::Add as jbyte),
-                            JValue::Int(node.as_u32() as jint),
-                            JValue::Int(parent.as_u32() as jint),
-                        ],
-                    )
-                    .unwrap();
-                }
-                Some(diff::PatchResult::Remove { node, parent }) => {
-                    env.call_method(
-                        &interface,
-                        "mOnHandle",
-                        "(JBII)V",
-                        &[
-                            JValue::Long(this),
-                            JValue::Byte(ChangeType::Remove as jbyte),
-                            JValue::Int(node.as_u32() as jint),
-                            JValue::Int(parent.as_u32() as jint),
-                        ],
-                    )
-                    .unwrap();
-                }
-                Some(diff::PatchResult::Change { node }) => {
-                    env.call_method(
-                        &interface,
-                        "mOnHandle",
-                        "(JBII)V",
-                        &[
-                            JValue::Long(this),
-                            JValue::Byte(ChangeType::Change as jbyte),
-                            JValue::Int(node.as_u32() as jint),
-                            JValue::Int(0),
-                        ],
-                    )
-                    .unwrap();
-                }
-                Some(diff::PatchResult::Replace { node, parent }) => {
-                    env.call_method(
-                        &interface,
-                        "mOnHandle",
-                        "(JBII)V",
-                        &[
-                            JValue::Long(this),
-                            JValue::Byte(ChangeType::Replace as jbyte),
-                            JValue::Int(node.as_u32() as jint),
-                            JValue::Int(parent.as_u32() as jint),
-                        ],
-                    )
-                    .unwrap();
-                }
+    if this.is_null() || other.is_null() {
+        env.throw_new(
+            "java/lang/NullPointerException",
+            "Document::merge called with null pointer",
+        )
+        .unwrap();
+
+        return;
+    }
+
+    let doc = &mut *this;
+    let other = &*other;
+
+    let patches = diff::diff(doc, other);
+
+    if patches.is_empty() {
+        return;
+    }
+
+    let mut editor = doc.edit();
+    let mut stack = vec![];
+
+    for patch in patches.into_iter() {
+        match patch.apply(&mut editor, &mut stack) {
+            None => (),
+            Some(PatchResult::Add { node, parent }) => {
+                env.call_method(
+                    &interface,
+                    "mOnHandle",
+                    "(JBII)V",
+                    &[
+                        JValue::Long(this as jlong),
+                        JValue::Byte(ChangeType::Add as jbyte),
+                        JValue::Int(node.as_u32() as jint),
+                        JValue::Int(parent.as_u32() as jint),
+                    ],
+                )
+                .unwrap();
+            }
+            Some(PatchResult::Remove { node, parent }) => {
+                env.call_method(
+                    &interface,
+                    "mOnHandle",
+                    "(JBII)V",
+                    &[
+                        JValue::Long(this as jlong),
+                        JValue::Byte(ChangeType::Remove as jbyte),
+                        JValue::Int(node.as_u32() as jint),
+                        JValue::Int(parent.as_u32() as jint),
+                    ],
+                )
+                .unwrap();
+            }
+            Some(PatchResult::Change { node }) => {
+                env.call_method(
+                    &interface,
+                    "mOnHandle",
+                    "(JBII)V",
+                    &[
+                        JValue::Long(this as jlong),
+                        JValue::Byte(ChangeType::Change as jbyte),
+                        JValue::Int(node.as_u32() as jint),
+                        JValue::Int(0),
+                    ],
+                )
+                .unwrap();
+            }
+            Some(PatchResult::Replace { node, parent }) => {
+                env.call_method(
+                    &interface,
+                    "mOnHandle",
+                    "(JBII)V",
+                    &[
+                        JValue::Long(this as jlong),
+                        JValue::Byte(ChangeType::Replace as jbyte),
+                        JValue::Int(node.as_u32() as jint),
+                        JValue::Int(parent.as_u32() as jint),
+                    ],
+                )
+                .unwrap();
             }
         }
-        editor.finish();
-    });
-
-    match result {
-        Ok(_) => (),
-        Err(err) => {
-            let mut env = env_mutex.lock().unwrap();
-            let exception_class = env.find_class("java/lang/RuntimeException").unwrap();
-            let message = format!("Rust panic occurred in Document merge: {:?}", err);
-            env.throw_new(exception_class, message).unwrap();
-        }
     }
+
+    editor.finish();
 }
