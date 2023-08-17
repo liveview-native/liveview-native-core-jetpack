@@ -72,12 +72,8 @@ class Document {
                 Node.Root
             }
             1.toByte() -> {
-                // element
                 val elementPtr = get_node_element(nodePtr)
-                val namespace = get_node_element_namespace(elementPtr)
-                val tag = get_node_element_tag(elementPtr)
-                val attributes = get_node_element_attributes(elementPtr)
-                Node.Element(namespace, tag, attributes).also { it.nativeObject = elementPtr }
+                Node.Element(elementPtr)
             }
             2.toByte() -> {
                 Node.Leaf(get_node_leaf_string(nativeObject, nodeRef.ref))
@@ -103,12 +99,6 @@ class Document {
     private external fun get_children(doc: Long, nodeRef: Int): IntArray
 
     private external fun get_node_leaf_string(doc: Long, nodeRef: Int): String
-
-    private external fun get_node_element_attributes(element: Long): Array<Attribute>
-
-    private external fun get_node_element_tag(element: Long): String
-
-    private external fun get_node_element_namespace(element: Long): String
 
     private external fun get_node_element(node: Long): Long
 
