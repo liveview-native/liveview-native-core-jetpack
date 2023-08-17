@@ -1,7 +1,9 @@
 package org.phoenixframework.liveview.lib
 
-data class NodeRef(val ref: Int) {
-    init {
-        assert(ref >= 0) { "Node should be a positive integer or 0" }
+class NodeRef {
+    internal val ref: Int
+
+    internal constructor(node_ref: Int) {
+        ref = node_ref
     }
 }
