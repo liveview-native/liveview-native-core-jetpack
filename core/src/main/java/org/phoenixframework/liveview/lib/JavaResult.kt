@@ -1,6 +1,6 @@
 package org.phoenixframework.liveview.lib
 
-class JavaResult(private var nativeObject: Long) {
+internal class JavaResult(private var nativeObject: Long) {
 
     private external fun get_val(jResultPointer: Long): Long
 
