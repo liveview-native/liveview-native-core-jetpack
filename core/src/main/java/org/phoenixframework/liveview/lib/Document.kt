@@ -118,20 +118,7 @@ class Document {
 
     override fun toString(): String = do_to_string(nativeObject)
 
-    @Synchronized
-    private fun delete() {
-        if (nativeObject != 0L) {
-            drop(nativeObject)
-            nativeObject = 0
-        }
-    }
-
-    @Throws(Throwable::class)
     protected fun finalize() {
-        try {
-            delete()
-        } finally {
-            // do nothing
-        }
+        drop(nativeObject)
     }
 }
