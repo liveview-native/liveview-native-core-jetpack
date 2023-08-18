@@ -37,17 +37,8 @@ sealed class Node {
 
         private external fun drop(pointer: Long)
 
-        @Synchronized
-        private fun delete() {
-            if (nativeObject != 0L) {
-                drop(nativeObject)
-                nativeObject = 0
-            }
-        }
-
-        @Throws(Throwable::class)
         protected fun finalize() {
-            delete()
+            drop(nativeObject)
         }
     }
 

@@ -22,21 +22,8 @@ class Attribute(private var nativeObject: Long) {
         "  Value: ${value.ifEmpty { "None" }}\n" +
         "}"
 
-    @Synchronized
-    private fun delete() {
-        if (nativeObject != 0L) {
-            drop(nativeObject)
-            nativeObject = 0
-        }
-    }
-
-    @Throws(Throwable::class)
     protected fun finalize() {
-        try {
-            delete()
-        } finally {
-            // do nothing
-        }
+        drop(nativeObject)
     }
 
     private external fun drop(pointer: Long)
