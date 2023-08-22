@@ -3,20 +3,14 @@ package org.phoenixframework.liveview.lib
 class Attribute internal constructor(private var nativeObject: Long) {
 
     val name: String
-        get() {
-            return if (nativeObject != 0L) get_name(nativeObject) else ""
-        }
+        get() = get_name(nativeObject)
 
     /** The namespace of an attribute */
     val namespace: String
-        get() {
-            return if (nativeObject != 0L) get_namespace(nativeObject) else ""
-        }
+        get() = get_namespace(nativeObject)
 
     val value: String
-        get() {
-            return if (nativeObject != 0L) get_value(nativeObject) else ""
-        }
+        get() = get_value(nativeObject)
 
     private external fun get_name(pointer: Long): String
 
