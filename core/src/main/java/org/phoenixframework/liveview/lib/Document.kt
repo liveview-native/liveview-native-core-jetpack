@@ -118,7 +118,8 @@ class Document {
 
     override fun toString(): String = do_to_string(nativeObject)
 
-    protected fun finalize() {
-        drop(nativeObject)
-    }
+    // TODO: Add fix so that leaking isn't necessary
+    // protected fun finalize() {
+    //     drop(nativeObject)
+    // }
 }
