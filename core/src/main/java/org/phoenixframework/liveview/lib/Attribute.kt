@@ -1,13 +1,22 @@
 package org.phoenixframework.liveview.lib
 
-class Attribute(private var nativeObject: Long) {
+class Attribute internal constructor(private var nativeObject: Long) {
 
-    val name: String by lazy { get_name(nativeObject) }
+    val name: String
+        get() {
+            return if (nativeObject != 0L) get_name(nativeObject) else ""
+        }
 
     /** The namespace of an attribute */
-    val namespace by lazy { get_namespace(nativeObject) }
+    val namespace: String
+        get() {
+            return if (nativeObject != 0L) get_namespace(nativeObject) else ""
+        }
 
-    val value by lazy { get_value(nativeObject) }
+    val value: String
+        get() {
+            return if (nativeObject != 0L) get_value(nativeObject) else ""
+        }
 
     private external fun get_name(pointer: Long): String
 
@@ -17,10 +26,10 @@ class Attribute(private var nativeObject: Long) {
 
     override fun toString(): String =
         "Attribute {\n" +
-        "  Name: ${name.ifEmpty { "None" }}\n" +
-        "  Namespace: ${namespace.ifEmpty { "None" }}\n" +
-        "  Value: ${value.ifEmpty { "None" }}\n" +
-        "}"
+                "  Name: ${name.ifEmpty { "None" }}\n" +
+                "  Namespace: ${namespace.ifEmpty { "None" }}\n" +
+                "  Value: ${value.ifEmpty { "None" }}\n" +
+                "}"
 
     protected fun finalize() {
         drop(nativeObject)
