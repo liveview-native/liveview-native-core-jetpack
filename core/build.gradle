@@ -72,14 +72,14 @@ tasks.configureEach { task ->
 tasks.withType(Test).configureEach { task ->
     task.doFirst {
         File rustJniLibsForDesktopDir = new File("${projectDir}/build/rustJniLibs/desktop")
-        ArrayList javaLibPathDirs = new ArrayList<String>()
         File[] archTypesSubdirs = rustJniLibsForDesktopDir.listFiles()
         for (dir in archTypesSubdirs) {
-            if (dir.isDirectory()) {
-                javaLibPathDirs.add(dir.absolutePath)
+            // Selecting the proper JNI lib file in according to the architecture
+            // e.g.: darwin-aarch64, darwin-x86-64
+            if (dir.isDirectory() && dir.name.contains(System.getProperty('os.arch'))) {
+                systemProperty "java.library.path", dir.absolutePath
+                break
             }
         }
-        String javaLibPath = javaLibPathDirs.join(File.pathSeparator)
-        systemProperty "java.library.path", javaLibPath
     }
 }
