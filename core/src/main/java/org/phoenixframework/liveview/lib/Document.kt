@@ -1,5 +1,6 @@
 package org.phoenixframework.liveview.lib
 
+
 class Document {
     private var nativeObject: Long
 
@@ -12,6 +13,10 @@ class Document {
     }
 
     companion object {
+        init {
+            System.loadLibrary("liveview_native_core")
+        }
+
         /**
          * Parses a `Document` from a string
          *
