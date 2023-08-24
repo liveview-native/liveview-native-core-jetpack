@@ -34,7 +34,8 @@ android {
     ndkVersion '25.2.9519653'
 }
 
-
+// Configuring Rust Cargo build
+// https://github.com/mozilla/rust-android-gradle
 cargo {
     module = "../jni_bindings"
     libname = "liveview_native_core"
@@ -60,8 +61,25 @@ afterEvaluate {
     }
 }
 
+// Running cargo command before build
 tasks.configureEach { task ->
     if ((task.name == 'javaPreCompileDebug' || task.name == 'javaPreCompileRelease')) {
         task.dependsOn 'cargoBuild'
+    }
+}
+
+// Configuring Java Lib Path in order to find the native library before running the Unit Tests
+tasks.withType(Test).configureEach { task ->
+    task.doFirst {
+        File rustJniLibsForDesktopDir = new File("${projectDir}/build/rustJniLibs/desktop")
+        ArrayList javaLibPathDirs = new ArrayList<String>()
+        File[] archTypesSubdirs = rustJniLibsForDesktopDir.listFiles()
+        for (dir in archTypesSubdirs) {
+            if (dir.isDirectory()) {
+                javaLibPathDirs.add(dir.absolutePath)
+            }
+        }
+        String javaLibPath = javaLibPathDirs.join(File.pathSeparator)
+        systemProperty "java.library.path", javaLibPath
     }
 }
