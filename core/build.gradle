@@ -76,7 +76,8 @@ tasks.withType(Test).configureEach { task ->
         for (dir in archTypesSubdirs) {
             // Selecting the proper JNI lib file in according to the architecture
             // e.g.: darwin-aarch64, darwin-x86-64
-            if (dir.isDirectory() && dir.name.contains(System.getProperty('os.arch'))) {
+            String arch = System.getProperty('os.arch').replace("_", "-")
+            if (dir.isDirectory() && dir.name.contains(arch)) {
                 systemProperty "java.library.path", dir.absolutePath
                 break
             }
