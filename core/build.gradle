@@ -38,7 +38,7 @@ android {
 cargo {
     module = "../jni_bindings"
     libname = "liveview_native_core"
-    targets = ["arm", "x86"]
+    targets = ["arm", "x86", "darwin-x86-64", "darwin-aarch64"]
 }
 
 dependencies {
