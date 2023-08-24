@@ -3,13 +3,16 @@ package org.phoenixframework.liveview.lib
 
 class Document {
     private var nativeObject: Long
+    private var asBorrow: Boolean
 
     constructor() {
         nativeObject = empty()
+        asBorrow = false
     }
 
-    internal constructor(pointer: Long) {
+    internal constructor(pointer: Long, borrowed: Boolean = true ) {
         nativeObject = pointer
+        asBorrow = borrowed
     }
 
     companion object {
@@ -43,7 +46,7 @@ class Document {
         open class Handler {
             private fun mOnHandle(context: Long, changeType: Byte, nodeRef: Int, parent: Int) {
                 onHandle(
-                    Document(context),
+                    Document(context, true),
                     ChangeType.values()[changeType.toInt()],
                     NodeRef(nodeRef),
                     if (parent == 0) null else NodeRef(parent))
@@ -123,8 +126,9 @@ class Document {
 
     override fun toString(): String = do_to_string(nativeObject)
 
-    // TODO: Add fix so that leaking isn't necessary
-    // protected fun finalize() {
-    //     drop(nativeObject)
-    // }
+    protected fun finalize() {
+        if (!asBorrow) {
+            drop(nativeObject)
+        }
+    }
 }
