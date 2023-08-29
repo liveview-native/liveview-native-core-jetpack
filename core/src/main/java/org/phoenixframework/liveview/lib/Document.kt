@@ -3,7 +3,7 @@ package org.phoenixframework.liveview.lib
 
 class Document {
     private var nativeObject: Long
-    private var asBorrow: Boolean
+    private val asBorrow: Boolean
 
     constructor() {
         nativeObject = empty()
