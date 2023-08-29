@@ -17,17 +17,14 @@ sealed class Node {
             nativeObject = pointer
         }
 
-        fun namespace(): String {
-            return get_namespace(nativeObject)
-        }
+        val namespace: String
+            get() = get_namespce(nativeOject)
 
-        fun tag(): String {
-            return get_tag(nativeObject)
-        }
+        val tag: String
+            get() = get_tag(nativeObject)
 
-        fun attributes(): Array<Attribute> {
-            return get_attributes(nativeObject)
-        }
+        val attributes(): Array<Attribute>
+            get() = get_attributes(nativeObject)
 
         private external fun get_attributes(element: Long): Array<Attribute>
 
