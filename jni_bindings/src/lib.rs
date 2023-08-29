@@ -1,3 +1,5 @@
+use std::hint::unreachable_unchecked;
+
 #[cfg(target_os = "android")]
 use android_logger::Config;
 use cranelift_entity::EntityRef;
@@ -716,11 +718,15 @@ pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_me
     let other = other as *mut Document;
 
     if this.is_null() || other.is_null() {
-        env.throw_new(
-            "java/lang/NullPointerException",
-            "Document::merge called with null pointer",
-        )
-        .unwrap();
+        let message = match (this.is_null(), other.is_null()) {
+            (true, true) => "Documment::merge called with `this` and `other` as null pointers",
+            (true, false) => "Document::merge called with `this` as null pointer",
+            (false, true) => "Document::merge called with `other` as null pointer",
+            (false, false) => unreachable_unchecked(),
+        };
+
+        env.throw_new("java/lang/NullPointerException", message)
+            .unwrap();
 
         return;
     }
