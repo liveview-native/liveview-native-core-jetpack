@@ -10,20 +10,16 @@ sealed class Node {
     object Root : Node()
 
     /** A typed node that can carry attributes and may contain other nodes */
-    class Element: Node {
-        private var nativeObject: Long
-
-        internal constructor(pointer: Long) {
-            nativeObject = pointer
-        }
+    class Element internal constructor(pointer: Long) : Node() {
+        private val nativeObject: Long = pointer
 
         val namespace: String
-            get() = get_namespce(nativeOject)
+            get() = get_namespace(nativeObject)
 
         val tag: String
             get() = get_tag(nativeObject)
 
-        val attributes(): Array<Attribute>
+        val attributes: Array<Attribute>
             get() = get_attributes(nativeObject)
 
         private external fun get_attributes(element: Long): Array<Attribute>
