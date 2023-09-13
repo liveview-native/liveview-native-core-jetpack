@@ -1,5 +1,5 @@
 jdk:
-  - openjdk11
+  - openjdk17
 before_install:
-  - yes | sdkmanager --uninstall "ndk-bundle" | sdkmanager --install "ndk;21.4.7075529"
+  - yes | sdkmanager --uninstall "ndk-bundle" | sdkmanager --install "ndk;25.2.9519653"
   - ./scripts/prepareJitpackEnvironment.sh
