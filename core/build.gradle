@@ -84,3 +84,12 @@ tasks.withType(Test).configureEach { task ->
         }
     }
 }
+
+tasks.register('copyAARRelease', Copy) {
+    from "$projectDir/build/outputs/aar/core-release.aar"
+    into "../lib"
+}
+
+afterEvaluate {
+    assembleRelease.finalizedBy('copyAARRelease')
+}

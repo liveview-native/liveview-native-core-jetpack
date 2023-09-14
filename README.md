@@ -19,4 +19,7 @@ In order to generate the [Android Archive](https://developer.android.com/studio/
 ```
 ./gradlew build
 ```
+The command above will generate the `*.aar` file which will be copied to the `lib` folder. This file must be versioned in order to release a new version. 
+
+This library is currently hosted on [Jitpack](https://jitpack.io/). However, this location only supports compilation of Android projects. As this library contains Rust code, the compilation and generation of the AAR file must be done locally and Jipack will only publish this file (see [jitpack.yml](jitpack.yml) file).
 

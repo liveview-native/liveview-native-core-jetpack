@@ -1,5 +1,6 @@
-jdk:
-  - openjdk17
-before_install:
-  - yes | sdkmanager --uninstall "ndk-bundle" | sdkmanager --install "ndk;25.2.9519653"
-  - ./scripts/prepareJitpackEnvironment.sh
+# In order to generate our library, it's necessary Rust and NDK.
+# The library is being published on Jitpack (jitpack.io) which, afaik, only supports Android compilation.
+# Therefore, for now, this script is only publishing the generated *.aar file.
+install:
+  - FILE="-Dfile=lib/core-release.aar"
+  - mvn install:install-file $FILE -DgroupId=org.phoenixframework -DartifactId=liveview-native-core-jetpack -Dversion=0.1.0-pre-alpha-08 -Dpackaging=aar -DgeneratePom=true
