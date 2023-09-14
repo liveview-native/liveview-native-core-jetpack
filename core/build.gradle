@@ -14,7 +14,7 @@ android {
         minSdk 21
         targetSdk 33
         versionCode 1
-        versionName "0.1.0-pre-alpha-07"
+        versionName core_jetpack_lib_version
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -39,7 +39,7 @@ android {
 cargo {
     module = "../jni_bindings"
     libname = "liveview_native_core"
-    targets = ["arm", "arm64", "x86", "x86_64", 'darwin-x86-64', 'darwin-aarch64']
+    targets = ["arm", "arm64", "x86", "x86_64", "darwin-x86-64", "darwin-aarch64"]
 }
 
 dependencies {
@@ -54,7 +54,7 @@ afterEvaluate {
             maven(MavenPublication) {
                 groupId = 'org.phoenixframework'
                 artifactId = 'liveview-native-core-jetpack'
-                version = '0.1.0-pre-alpha-07'
+                version = core_jetpack_lib_version
                 from components.release
             }
         }
