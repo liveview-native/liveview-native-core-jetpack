@@ -49,16 +49,25 @@ dependencies {
 
 
 afterEvaluate {
-    publishing {
-        publications {
-            maven(MavenPublication) {
-                groupId = 'org.phoenixframework'
-                artifactId = 'liveview-native-core-jetpack'
-                version = core_jetpack_lib_version
-                from components.release
-            }
+    android.libraryVariants.each { variant ->
+        publishing.publications.create(variant.name, MavenPublication) {
+            from components.findByName(variant.name)
+
+            groupId = 'org.phoenixframework'
+            artifactId = 'liveview-native-core-jetpack'
+            version = core_jetpack_lib_version
         }
     }
+//    publishing {
+//        publications {
+//            maven(MavenPublication) {
+//                groupId = 'org.phoenixframework'
+//                artifactId = 'liveview-native-core-jetpack'
+//                version = core_jetpack_lib_version
+//                from components.release
+//            }
+//        }
+//    }
 }
 
 // Running cargo command before build
