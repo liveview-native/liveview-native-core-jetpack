@@ -86,15 +86,17 @@ tasks.withType(Test).configureEach { task ->
     }
 }
 
-publishing {
-    publications {
-        release(MavenPublication) {
-            groupId = 'org.phoenixframework'
-            artifactId = 'liveview-native-core-jetpack'
-            version = core_jetpack_lib_version
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                groupId = 'org.phoenixframework'
+                artifactId = 'liveview-native-core-jetpack'
+                version = core_jetpack_lib_version
 
-            afterEvaluate {
-                from components.release
+                afterEvaluate {
+                    from components.release
+                }
             }
         }
     }
