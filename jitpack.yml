@@ -1,4 +1,2 @@
 jdk:
   - openjdk17
-before_install:
-  - yes | sdkmanager --uninstall "ndk-bundle" | sdkmanager --install "ndk;25.1.8937393"
