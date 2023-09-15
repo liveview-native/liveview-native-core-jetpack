@@ -5,7 +5,6 @@ plugins {
     id 'org.mozilla.rust-android-gradle.rust-android' version '0.9.3'
 }
 
-
 android {
     namespace 'org.phoenixframework.liveview_native_core_jetpack'
     compileSdk 33
@@ -34,6 +33,7 @@ android {
     publishing {
         singleVariant("release") {
             withSourcesJar()
+            withJavadocJar()
         }
     }
     ndkVersion '25.1.8937393'
@@ -52,15 +52,15 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
 }
 
-afterEvaluate {
-    publishing {
-        publications {
-            release(MavenPublication) {
-                from components.release
+publishing {
+    publications {
+        release(MavenPublication) {
+            groupId = 'org.phoenixframework'
+            artifactId = 'liveview-native-core-jetpack'
+            version = core_jetpack_lib_version
 
-                groupId = 'org.phoenixframework'
-                artifactId = 'liveview-native-core-jetpack'
-                version = core_jetpack_lib_version
+            afterEvaluate {
+                from components.release
             }
         }
     }
