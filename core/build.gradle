@@ -52,20 +52,6 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
 }
 
-publishing {
-    publications {
-        release(MavenPublication) {
-            groupId = 'org.phoenixframework'
-            artifactId = 'liveview-native-core-jetpack'
-            version = core_jetpack_lib_version
-
-            afterEvaluate {
-                from components.release
-            }
-        }
-    }
-}
-
 // Running cargo command before build
 //tasks.configureEach { task ->
 //    if ((task.name == 'javaPreCompileDebug' || task.name == 'javaPreCompileRelease')) {
@@ -95,6 +81,22 @@ tasks.withType(Test).configureEach { task ->
             if (dir.isDirectory() && dir.name.contains(arch)) {
                 systemProperty "java.library.path", dir.absolutePath
                 break
+            }
+        }
+    }
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                groupId = 'org.phoenixframework'
+                artifactId = 'liveview-native-core-jetpack'
+                version = core_jetpack_lib_version
+
+                afterEvaluate {
+                    from components.release
+                }
             }
         }
     }
