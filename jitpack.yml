@@ -4,3 +4,5 @@ before_install:
   - yes | sdkmanager --licenses
   - yes | sdkmanager --update
   - yes | sdkmanager --install "ndk;25.1.8937393"
+env:
+  DEFAULT_JVM_OPTS: '"-Dcom.android.sdklib.toolsdir=$APP_HOME" -XX:+IgnoreUnrecognizedVMOptions --add-modules java.se.ee'
