@@ -32,7 +32,7 @@ android {
             withJavadocJar()
         }
     }
-    //ndkVersion '21.4.7075529'
+    ndkVersion = "25.1.8937393"
 }
 
 // Configuring Rust Cargo build
