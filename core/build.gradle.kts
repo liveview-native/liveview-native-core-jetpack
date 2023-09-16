@@ -2,7 +2,7 @@ plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     id("maven-publish")
-    //id("org.mozilla.rust-android-gradle.rust-android") version ("0.9.3")
+    id("org.mozilla.rust-android-gradle.rust-android")
 }
 
 android {
@@ -37,11 +37,11 @@ android {
 
 // Configuring Rust Cargo build
 // https://github.com/mozilla/rust-android-gradle
-//cargo {
-//    module = "../jni_bindings"
-//    libname = "liveview_native_core"
-//    targets = listOf("arm", "arm64", "x86", "x86_64", "darwin-x86-64", "darwin-aarch64")
-//}
+cargo {
+    module = "../jni_bindings"
+    libname = "liveview_native_core"
+    targets = listOf("arm", "arm64", "x86", "x86_64", "darwin-x86-64", "darwin-aarch64")
+}
 
 dependencies {
     testImplementation("junit:junit:4.13.2")
