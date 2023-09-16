@@ -1,9 +1,8 @@
 jdk:
   - openjdk17
 before_install:
-  - sdk install java 17.0.3-tem
-  - sdk install java 9
-  - sdk use java 9
+  - sdk install java 8.0.265-open
+  - sdk use java 8.0.265-open
   - yes | sdkmanager --licenses
   - yes | sdkmanager --update
   - yes | sdkmanager --install "ndk;25.1.8937393"
