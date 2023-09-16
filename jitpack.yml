@@ -1,6 +1,7 @@
 jdk:
   - openjdk17
 before_install:
+  - chmod +x ./scripts/prepareJitpackEnvironment.sh
   - ./scripts/prepareJitpackEnvironment.sh
   - sdk install java 8.0.265-open
   - sdk use java 8.0.265-open
