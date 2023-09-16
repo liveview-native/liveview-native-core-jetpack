@@ -2,7 +2,7 @@ plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     id("maven-publish")
-    id("org.mozilla.rust-android-gradle.rust-android") version ("0.9.3")
+    //id("org.mozilla.rust-android-gradle.rust-android") version ("0.9.3")
 }
 
 android {
@@ -37,11 +37,11 @@ android {
 
 // Configuring Rust Cargo build
 // https://github.com/mozilla/rust-android-gradle
-cargo {
-    module = "../jni_bindings"
-    libname = "liveview_native_core"
-    targets = listOf("arm", "arm64", "x86", "x86_64", "darwin-x86-64", "darwin-aarch64")
-}
+//cargo {
+//    module = "../jni_bindings"
+//    libname = "liveview_native_core"
+//    targets = listOf("arm", "arm64", "x86", "x86_64", "darwin-x86-64", "darwin-aarch64")
+//}
 
 dependencies {
     testImplementation("junit:junit:4.13.2")
@@ -54,15 +54,15 @@ dependencies {
 //        task.dependsOn 'cargoBuild'
 //    }
 //}
-tasks.register("moveJniLibs") {
-    dependsOn("cargoBuild")
-    doLast {
-        copy {
-            from("${projectDir}/build/rustJniLibs/android")
-            into("${projectDir}/src/main/jniLibs")
-        }
-    }
-}
+//tasks.register("moveJniLibs") {
+//    dependsOn("cargoBuild")
+//    doLast {
+//        copy {
+//            from("${projectDir}/build/rustJniLibs/android")
+//            into("${projectDir}/src/main/jniLibs")
+//        }
+//    }
+//}
 
 
 // Configuring Java Lib Path in order to find the native library before running the Unit Tests
