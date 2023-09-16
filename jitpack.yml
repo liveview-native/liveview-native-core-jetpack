@@ -3,4 +3,4 @@ jdk:
 before_install:
   - sdkmanager --install "ndk;25.1.8937393"
 env:
-  JAVA_OPTS: "-XX:+IgnoreUnrecognizedVMOptions --add-modules java.xml.bind"
+  JAVA_OPTS: "-XX:+IgnoreUnrecognizedVMOptions --add-modules java.se.ee"
