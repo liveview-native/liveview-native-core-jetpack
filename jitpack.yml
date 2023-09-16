@@ -1,5 +1,4 @@
 jdk:
   - openjdk17
 before_install:
-  - yes |  sdkmanager --licenses
-  - sdkmanager --install "ndk;25.1.8937393"
+  - yes | $ANDROID_HOME/tools/bin/sdkmanager --install "ndk;25.1.8937393"
