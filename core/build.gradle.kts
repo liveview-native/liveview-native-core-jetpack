@@ -49,38 +49,38 @@ dependencies {
 }
 
 // Running cargo command before build
-//tasks.configureEach { task ->
-//    if ((task.name == 'javaPreCompileDebug' || task.name == 'javaPreCompileRelease')) {
-//        task.dependsOn 'cargoBuild'
+//tasks.configureEach {
+//    if ((name == "javaPreCompileDebug" || name == "javaPreCompileRelease")) {
+//        dependsOn("cargoBuild")
 //    }
 //}
-//tasks.register("moveJniLibs") {
-//    dependsOn("cargoBuild")
-//    doLast {
-//        copy {
-//            from("${projectDir}/build/rustJniLibs/android")
-//            into("${projectDir}/src/main/jniLibs")
-//        }
-//    }
-//}
+tasks.register("moveJniLibs") {
+    dependsOn("cargoBuild")
+    doLast {
+        copy {
+            from("${projectDir}/build/rustJniLibs/android")
+            into("${projectDir}/src/main/jniLibs")
+        }
+    }
+}
 
 
 // Configuring Java Lib Path in order to find the native library before running the Unit Tests
-//tasks.withType<Test>().configureEach {
-//    doFirst {
-//        val rustJniLibsForDesktopDir = File("${projectDir}/build/rustJniLibs/desktop")
-//        val archTypesSubdirs = rustJniLibsForDesktopDir.listFiles()
-//        for (dir in archTypesSubdirs) {
-//            // Selecting the proper JNI lib file in according to the architecture
-//            // e.g.: darwin-aarch64, darwin-x86-64
-//            val arch = System.getProperty("os.arch").replace("_", "-")
-//            if (dir.isDirectory && dir.name.contains(arch)) {
-//                systemProperty("java.library.path", dir.absolutePath)
-//                break
-//            }
-//        }
-//    }
-//}
+tasks.withType<Test>().configureEach {
+    doFirst {
+        val rustJniLibsForDesktopDir = File("${projectDir}/build/rustJniLibs/desktop")
+        val archTypesSubdirs = rustJniLibsForDesktopDir.listFiles()
+        for (dir in archTypesSubdirs) {
+            // Selecting the proper JNI lib file in according to the architecture
+            // e.g.: darwin-aarch64, darwin-x86-64
+            val arch = System.getProperty("os.arch").replace("_", "-")
+            if (dir.isDirectory && dir.name.contains(arch)) {
+                systemProperty("java.library.path", dir.absolutePath)
+                break
+            }
+        }
+    }
+}
 
 publishing {
     publications {
