@@ -49,20 +49,20 @@ dependencies {
 }
 
 // Running cargo command before build
-//tasks.configureEach {
-//    if ((name == "javaPreCompileDebug" || name == "javaPreCompileRelease")) {
-//        dependsOn("cargoBuild")
-//    }
-//}
-tasks.register("moveJniLibs") {
-    dependsOn("cargoBuild")
-    doLast {
-        copy {
-            from("${projectDir}/build/rustJniLibs/android")
-            into("${projectDir}/src/main/jniLibs")
-        }
+tasks.configureEach {
+    if ((name == "javaPreCompileDebug" || name == "javaPreCompileRelease")) {
+        dependsOn("cargoBuild")
     }
 }
+//tasks.register("moveJniLibs") {
+//    dependsOn("cargoBuild")
+//    doLast {
+//        copy {
+//            from("${projectDir}/build/rustJniLibs/android")
+//            into("${projectDir}/src/main/jniLibs")
+//        }
+//    }
+//}
 
 
 // Configuring Java Lib Path in order to find the native library before running the Unit Tests
