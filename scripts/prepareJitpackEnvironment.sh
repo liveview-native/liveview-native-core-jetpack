@@ -7,3 +7,4 @@ rustup target add aarch64-linux-android
 rustup target add x86_64-linux-android
 rustc --version
 cargo --version
+export RUST_ANDROID_GRADLE_RUSTC_COMMAND="$HOME/.cargo/bin"
