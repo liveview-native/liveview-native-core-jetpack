@@ -5,5 +5,5 @@ rustup target add armv7-linux-androideabi
 rustup target add i686-linux-android
 rustup target add aarch64-linux-android
 rustup target add x86_64-linux-android
-which python3
-apt-get install python3.9
+rustc --version
+cargo --version
