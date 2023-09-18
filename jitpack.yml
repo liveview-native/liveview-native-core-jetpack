@@ -9,6 +9,7 @@ before_install:
   - yes | sdkmanager --update
   - yes | sdkmanager --uninstall "ndk-bundle"
   - yes | sdkmanager --install "ndk;25.1.8937393"
+  - yes | sdkmanager --install "cmake;3.22.1"
   - sdk install java 17.0.3-tem
   - sdk use java 17.0.3-tem
   - ./gradlew assembleRelease --stacktrace
