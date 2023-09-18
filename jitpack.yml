@@ -15,3 +15,4 @@ before_install:
 env:
   RUST_ANDROID_GRADLE_RUSTC_COMMAND: "/home/jitpack/.cargo/bin/rustc"
   RUST_ANDROID_GRADLE_CARGO_COMMAND: "/home/jitpack/.cargo/bin/cargo"
+  RUST_ANDROID_GRADLE_RUSTUP_CHANNEL: "nightly"
