@@ -15,10 +15,9 @@ before_install:
   - yes | sdkmanager --install "ndk;25.1.8937393"
   - yes | sdkmanager --install "cmake;3.22.1"
   # Install JDK 17 and using it for the rest of the build
-  - sdk install java 17.0.3-tem
-  - sdk use java 17.0.3-tem
-# These environment variables are used by the Rust/Gradle plugin
+  - sdk use 17.0.7-oracle
 env:
+  # These environment variables are used by the Rust/Gradle plugin
   RUST_ANDROID_GRADLE_RUSTC_COMMAND: "/home/jitpack/.cargo/bin/rustc"
   RUST_ANDROID_GRADLE_CARGO_COMMAND: "/home/jitpack/.cargo/bin/cargo"
   RUST_ANDROID_GRADLE_RUSTUP_CHANNEL: "nightly"
