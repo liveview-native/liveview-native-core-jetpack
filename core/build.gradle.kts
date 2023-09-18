@@ -40,7 +40,8 @@ android {
 cargo {
     module = "../jni_bindings"
     libname = "liveview_native_core"
-    targets = listOf("arm", "arm64", "x86", "x86_64", "darwin-x86-64", "darwin-aarch64")
+    // In case you need to run the unit tests, install the respective toolchain and add the target below.
+    targets = listOf("arm", "arm64", "x86", "x86_64")
 }
 
 dependencies {
@@ -61,8 +62,8 @@ tasks.withType<Test>().configureEach {
         val rustJniLibsForDesktopDir = File("${projectDir}/build/rustJniLibs/desktop")
         val archTypesSubdirs = rustJniLibsForDesktopDir.listFiles()
         for (dir in archTypesSubdirs) {
-            // Selecting the proper JNI lib file in according to the architecture
-            // e.g.: darwin-aarch64, darwin-x86-64
+            // Selecting the proper JNI lib file for run the unit tests
+            // in according to the architecture. e.g.: darwin-aarch64, darwin-x86-64
             val arch = System.getProperty("os.arch").replace("_", "-")
             if (dir.isDirectory && dir.name.contains(arch)) {
                 systemProperty("java.library.path", dir.absolutePath)
