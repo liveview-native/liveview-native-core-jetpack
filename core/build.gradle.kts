@@ -40,7 +40,7 @@ android {
 cargo {
     module = "../jni_bindings"
     libname = "liveview_native_core"
-    targets = listOf("arm", "arm64", "x86", "x86_64") // "darwin-x86-64", "darwin-aarch64"
+    targets = listOf("arm", "arm64", "x86", "x86_64", "darwin-x86-64", "darwin-aarch64")
 }
 
 dependencies {
@@ -54,16 +54,6 @@ tasks.configureEach {
         dependsOn("cargoBuild")
     }
 }
-//tasks.register("moveJniLibs") {
-//    dependsOn("cargoBuild")
-//    doLast {
-//        copy {
-//            from("${projectDir}/build/rustJniLibs/android")
-//            into("${projectDir}/src/main/jniLibs")
-//        }
-//    }
-//}
-
 
 // Configuring Java Lib Path in order to find the native library before running the Unit Tests
 tasks.withType<Test>().configureEach {
