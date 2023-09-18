@@ -35,6 +35,11 @@ android {
     ndkVersion = "25.1.8937393"
 }
 
+dependencies {
+    testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+}
+
 // Configuring Rust Cargo build
 // https://github.com/mozilla/rust-android-gradle
 cargo {
@@ -42,11 +47,6 @@ cargo {
     libname = "liveview_native_core"
     // In case you need to run the unit tests, install the respective toolchain and add the target below.
     targets = listOf("arm", "arm64", "x86", "x86_64")
-}
-
-dependencies {
-    testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
 }
 
 // Running cargo command before build
