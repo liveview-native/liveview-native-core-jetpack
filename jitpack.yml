@@ -14,3 +14,4 @@ before_install:
   - ./gradlew assembleRelease --stacktrace
 env:
   RUST_ANDROID_GRADLE_RUSTC_COMMAND: "/home/jitpack/.cargo/bin/rustc"
+  RUST_ANDROID_GRADLE_CARGO_COMMAND: "/home/jitpack/.cargo/bin/cargo"
