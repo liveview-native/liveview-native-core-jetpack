@@ -17,6 +17,12 @@ rustup target add i686-linux-android        # for x86
 
 In order to generate the [Android Archive](https://developer.android.com/studio/projects/android-library) (`*.aar`) file, use the command below:
 ```
-./gradlew build
+./gradlew assembleRelease
 ```
+
+## Releasing a new version of the library
+
+This library is hosted in [Jitpack](https://jitpack.io/) and the whole build process is automated.  
+In order to generate a new version of the library, you just need to open a PR containing the changes and update the library version in the [build.gradle.kts](core/build.gradle.kts) file (see the `version` field in `publishing` task). 
+After approved and merged, [create a new release](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) here in GitHub. 
 

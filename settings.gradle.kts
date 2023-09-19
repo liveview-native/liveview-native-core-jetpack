@@ -1,5 +1,3 @@
-import org.gradle.api.initialization.resolve.RepositoriesMode
-
 pluginManagement {
     repositories {
         google()
@@ -12,8 +10,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url 'https://jitpack.io' }
     }
 }
+
 rootProject.name = "liveview-native-core-jetpack"
-include ':core'
+include(":core")
