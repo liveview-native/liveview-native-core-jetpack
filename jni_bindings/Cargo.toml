@@ -15,5 +15,5 @@ jni = "0.21"
 log = "0.4"
 log-panics = { version = "2", features = ["with-backtrace"] }
 android_logger = "0.13.3"
-liveview-native-core = { git = "https://github.com/liveview-native/liveview-native-core.git", branch = "simlay/40-template-and-deserialization" }
+liveview-native-core = { git = "https://github.com/liveview-native/liveview-native-core.git", rev = "d9713724988b213447a02400dae7185ee1bfb5a2" }
 serde_json = "1.0.107"
