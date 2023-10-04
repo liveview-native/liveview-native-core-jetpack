@@ -1,4 +1,5 @@
 package org.phoenixframework.liveview.lib
+import android.util.Log;
 
 
 class Document {
@@ -44,7 +45,7 @@ class Document {
         }
 
         open class Handler {
-            private fun mOnHandle(context: Long, changeType: Byte, nodeRef: Int, parent: Int) {
+            private fun ffiOnHandle(context: Long, changeType: Byte, nodeRef: Int, parent: Int) {
                 onHandle(
                     Document(context, true),
                     ChangeType.values()[changeType.toInt()],
@@ -100,7 +101,22 @@ class Document {
     fun merge(other: Document, handler: Handler) {
         merge(nativeObject, other.nativeObject, handler)
     }
+
+    /**
+     * Deserializes the json, renders it, parses it and then diffs it against
+     * the current document.
+     *
+     * @throws Exception if the this is not deserializable, not renderable or
+     * if the rendering is unparsable.
+     */
+    @Throws
+    fun mergeFragmentJson(other_json: String, handler: Handler) {
+        merge_fragment_json(nativeObject, other_json, handler)
+    }
+
     private external fun merge(doc: Long, other: Long, handler: Handler)
+
+    private external fun merge_fragment_json(doc: Long, other_json: String, handler: Handler)
 
     private external fun get_parent(doc: Long, nodeRef: Int): Int
 
