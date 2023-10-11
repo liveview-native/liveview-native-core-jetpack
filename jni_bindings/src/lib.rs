@@ -747,10 +747,7 @@ pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_me
     // Callback handle interface
     interface: JObject<'local>,
 ) {
-    use liveview_native_core::diff::fragment::{
-        RootDiff,
-        Root,
-    };
+    use liveview_native_core::diff::fragment::RootDiff;
 
     let this = this as *mut Document;
 
@@ -765,6 +762,7 @@ pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_me
 
         return;
     }
+    let doc = &mut *this;
 
     let other_json: String = env.get_string(&other_json).unwrap().into();
     let other_fragment : Result<RootDiff, _> = serde_json::from_str(&other_json);
@@ -779,18 +777,18 @@ pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_me
         }
     };
 
-    let root : Root = match other_fragment.try_into() {
+    let new_root = match doc.merge_fragment(other_fragment.clone()) {
         Ok(root) => root,
         Err(err) => {
-            // TODO: don't use debug representation for err
             log::error!("{err:?}");
-            let message = format!("Documment::merge_fragment_json root conversion {err:?}");
+            let message = format!("Documment::merge_fragment_json called with invalid json {err:?}");
             env.throw_new("java/lang/RuntimeException", message)
                 .unwrap();
             return;
         }
     };
-    let other_doc : String = match root.try_into() {
+
+    let other_doc : String = match new_root.try_into() {
         Ok(rendered) => rendered,
         Err(err) => {
             log::error!("{err:?}");
@@ -812,7 +810,6 @@ pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_me
         }
     };
 
-    let doc = &mut *this;
     merge(env, this, doc, &other_doc, interface);
 }
 fn merge<'local>(
