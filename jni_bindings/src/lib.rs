@@ -777,15 +777,20 @@ pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_me
         }
     };
 
-    let new_root = match doc.merge_fragment(other_fragment.clone()) {
-        Ok(root) => root,
-        Err(err) => {
-            log::error!("{err:?}");
-            let message = format!("Documment::merge_fragment_json called with invalid json {err:?}");
-            env.throw_new("java/lang/RuntimeException", message)
-                .unwrap();
-            return;
-        }
+    if let Err(err) = doc.merge_fragment(other_fragment.clone()) {
+        log::error!("{err:?}");
+        let message = format!("Documment::merge_fragment_json called with invalid json {err:?}");
+        env.throw_new("java/lang/RuntimeException", message)
+            .unwrap();
+        return;
+    }
+    let new_root = if let Some(fragment) = doc.fragment_template.clone() {
+        fragment
+    } else {
+        let message = format!("Documment::merge_fragment_json Fragment template is Note!");
+        env.throw_new("java/lang/RuntimeException", message)
+            .unwrap();
+        return;
     };
 
     let other_doc : String = match new_root.try_into() {
