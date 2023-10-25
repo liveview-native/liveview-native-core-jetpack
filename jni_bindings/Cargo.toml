@@ -15,4 +15,5 @@ jni = "0.21"
 log = "0.4"
 log-panics = { version = "2", features = ["with-backtrace"] }
 android_logger = "0.13.3"
-liveview-native-core = { git = "https://github.com/liveview-native/liveview-native-core.git", tag = "0.2.0" }
+liveview-native-core = { git = "https://github.com/liveview-native/liveview-native-core.git", rev = "fc9745d" }
+serde_json = "1.0.107"

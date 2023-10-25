@@ -733,8 +733,99 @@ pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_me
 
     let doc = &mut *this;
     let other = &*other;
+    merge(env, this, doc, other, interface);
+}
 
-    let patches = diff::diff(doc, other);
+#[no_mangle]
+pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_merge_1fragment_1json<'local>(
+    mut env: JNIEnv<'local>,
+    _: JClass<'local>,
+    // non-null raw pointer to Document
+    this: jlong,
+    // A json string ofr the fragment
+    other_json: JString<'local>,
+    // Callback handle interface
+    interface: JObject<'local>,
+) {
+    use liveview_native_core::diff::fragment::RootDiff;
+
+    let this = this as *mut Document;
+
+    if this.is_null() {
+        let message = match this.is_null() {
+            true => "Document::merge called with `this` as null pointer",
+            false => unreachable_unchecked(),
+        };
+
+        env.throw_new("java/lang/NullPointerException", message)
+            .unwrap();
+
+        return;
+    }
+    let doc = &mut *this;
+
+    let other_json: String = env.get_string(&other_json).unwrap().into();
+    let other_fragment : Result<RootDiff, _> = serde_json::from_str(&other_json);
+    let other_fragment = match other_fragment {
+        Ok(fragment) => fragment,
+        Err(err) => {
+            log::error!("{err:?}");
+            let message = format!("Documment::merge_fragment_json called with invalid json {err}");
+            env.throw_new("java/lang/RuntimeException", message)
+                .unwrap();
+            return;
+        }
+    };
+
+    if let Err(err) = doc.merge_fragment(other_fragment.clone()) {
+        log::error!("{err:?}");
+        let message = format!("Documment::merge_fragment_json called with invalid json {err:?}");
+        env.throw_new("java/lang/RuntimeException", message)
+            .unwrap();
+        return;
+    }
+    let new_root = if let Some(fragment) = doc.fragment_template.clone() {
+        fragment
+    } else {
+        let message = format!("Documment::merge_fragment_json Fragment template is Note!");
+        env.throw_new("java/lang/RuntimeException", message)
+            .unwrap();
+        return;
+    };
+
+    let other_doc : String = match new_root.try_into() {
+        Ok(rendered) => rendered,
+        Err(err) => {
+            log::error!("{err:?}");
+            let message = format!("Documment::merge_fragment_json failed to render {err:?}");
+            env.throw_new("java/lang/RuntimeException", message)
+                .unwrap();
+            return;
+        }
+    };
+
+    let other_doc = match dom::Document::parse(other_doc) {
+        Ok(doc) => doc,
+        Err(err) => {
+            log::error!("{err:?}");
+            let message = format!("Documment::merge_fragment_json failed to parse {err}");
+            env.throw_new("java/lang/RuntimeException", message)
+                .unwrap();
+            return;
+        }
+    };
+
+    merge(env, this, doc, &other_doc, interface);
+}
+fn merge<'local>(
+    mut env: JNIEnv<'local>,
+    this: * mut Document,
+    doc: &mut Document,
+    other_doc: &Document,
+    // Callback handle interface
+    interface: JObject<'local>,
+) {
+    let patches = diff::diff(doc, &other_doc);
 
     if patches.is_empty() {
         return;
@@ -744,12 +835,13 @@ pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_me
     let mut stack = vec![];
 
     for patch in patches.into_iter() {
+
         match patch.apply(&mut editor, &mut stack) {
             None => (),
             Some(PatchResult::Add { node, parent }) => {
                 env.call_method(
                     &interface,
-                    "mOnHandle",
+                    "ffiOnHandle",
                     "(JBII)V",
                     &[
                         JValue::Long(this as jlong),
@@ -763,7 +855,7 @@ pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_me
             Some(PatchResult::Remove { node, parent }) => {
                 env.call_method(
                     &interface,
-                    "mOnHandle",
+                    "ffiOnHandle",
                     "(JBII)V",
                     &[
                         JValue::Long(this as jlong),
@@ -777,7 +869,7 @@ pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_me
             Some(PatchResult::Change { node }) => {
                 env.call_method(
                     &interface,
-                    "mOnHandle",
+                    "ffiOnHandle",
                     "(JBII)V",
                     &[
                         JValue::Long(this as jlong),
@@ -791,7 +883,7 @@ pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_me
             Some(PatchResult::Replace { node, parent }) => {
                 env.call_method(
                     &interface,
-                    "mOnHandle",
+                    "ffiOnHandle",
                     "(JBII)V",
                     &[
                         JValue::Long(this as jlong),
@@ -807,3 +899,5 @@ pub unsafe extern "system" fn Java_org_phoenixframework_liveview_lib_Document_me
 
     editor.finish();
 }
+/*
+*/
